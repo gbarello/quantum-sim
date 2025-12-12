@@ -1,0 +1,317 @@
+/**
+ * utils.js - Complex number utilities and FFT wrappers
+ *
+ * Provides:
+ * - Complex number operations
+ * - 2D FFT/IFFT wrappers using fft.js
+ */
+
+import FFT from '../lib/fft.js';
+
+/**
+ * Complex number utilities
+ */
+export class Complex {
+    constructor(re = 0, im = 0) {
+        this.re = re;
+        this.im = im;
+    }
+
+    // Magnitude |z|
+    abs() {
+        return Math.sqrt(this.re * this.re + this.im * this.im);
+    }
+
+    // Magnitude squared |z|²
+    abs2() {
+        return this.re * this.re + this.im * this.im;
+    }
+
+    // Phase arg(z)
+    arg() {
+        return Math.atan2(this.im, this.re);
+    }
+
+    // Complex conjugate z*
+    conj() {
+        return new Complex(this.re, -this.im);
+    }
+
+    // Addition z1 + z2
+    add(other) {
+        return new Complex(this.re + other.re, this.im + other.im);
+    }
+
+    // Subtraction z1 - z2
+    sub(other) {
+        return new Complex(this.re - other.re, this.im - other.im);
+    }
+
+    // Multiplication z1 * z2
+    mul(other) {
+        return new Complex(
+            this.re * other.re - this.im * other.im,
+            this.re * other.im + this.im * other.re
+        );
+    }
+
+    // Scalar multiplication
+    scale(scalar) {
+        return new Complex(this.re * scalar, this.im * scalar);
+    }
+
+    // Division z1 / z2
+    div(other) {
+        const denom = other.abs2();
+        return new Complex(
+            (this.re * other.re + this.im * other.im) / denom,
+            (this.im * other.re - this.re * other.im) / denom
+        );
+    }
+
+    // Exponential e^(i*theta)
+    static fromPolar(r, theta) {
+        return new Complex(r * Math.cos(theta), r * Math.sin(theta));
+    }
+
+    // e^z
+    exp() {
+        const expRe = Math.exp(this.re);
+        return new Complex(expRe * Math.cos(this.im), expRe * Math.sin(this.im));
+    }
+}
+
+/**
+ * 2D array of complex numbers stored as interleaved [re, im, re, im, ...]
+ * This format is compatible with fft.js
+ */
+export class ComplexGrid {
+    constructor(sizeX, sizeY) {
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        // Interleaved format: [re0, im0, re1, im1, ...]
+        this.data = new Float64Array(sizeX * sizeY * 2);
+    }
+
+    // Get complex value at (x, y)
+    get(x, y) {
+        const idx = (y * this.sizeX + x) * 2;
+        return new Complex(this.data[idx], this.data[idx + 1]);
+    }
+
+    // Set complex value at (x, y)
+    set(x, y, c) {
+        const idx = (y * this.sizeX + x) * 2;
+        this.data[idx] = c.re;
+        this.data[idx + 1] = c.im;
+    }
+
+    // Get real part at (x, y)
+    getRe(x, y) {
+        return this.data[(y * this.sizeX + x) * 2];
+    }
+
+    // Get imaginary part at (x, y)
+    getIm(x, y) {
+        return this.data[(y * this.sizeX + x) * 2 + 1];
+    }
+
+    // Set real and imaginary parts at (x, y)
+    setReIm(x, y, re, im) {
+        const idx = (y * this.sizeX + x) * 2;
+        this.data[idx] = re;
+        this.data[idx + 1] = im;
+    }
+
+    // Get magnitude squared |È|² at (x, y)
+    getAbs2(x, y) {
+        const idx = (y * this.sizeX + x) * 2;
+        const re = this.data[idx];
+        const im = this.data[idx + 1];
+        return re * re + im * im;
+    }
+
+    // Get magnitude |È| at (x, y)
+    getAbs(x, y) {
+        return Math.sqrt(this.getAbs2(x, y));
+    }
+
+    // Get phase arg(È) at (x, y)
+    getArg(x, y) {
+        const idx = (y * this.sizeX + x) * 2;
+        return Math.atan2(this.data[idx + 1], this.data[idx]);
+    }
+
+    // Scale all values by a real scalar
+    scale(scalar) {
+        for (let i = 0; i < this.data.length; i++) {
+            this.data[i] *= scalar;
+        }
+    }
+
+    // Copy data from another ComplexGrid
+    copy(other) {
+        this.data.set(other.data);
+    }
+
+    // Clone this grid
+    clone() {
+        const result = new ComplexGrid(this.sizeX, this.sizeY);
+        result.data.set(this.data);
+        return result;
+    }
+
+    // Fill with zeros
+    zero() {
+        this.data.fill(0);
+    }
+
+    // Sum of |È|² over all grid points (for normalization check)
+    sumAbs2() {
+        let sum = 0;
+        for (let i = 0; i < this.data.length; i += 2) {
+            const re = this.data[i];
+            const im = this.data[i + 1];
+            sum += re * re + im * im;
+        }
+        return sum;
+    }
+}
+
+/**
+ * 2D FFT operations using fft.js
+ *
+ * Note: fft.js operates on 1D arrays in interleaved format [re, im, re, im, ...]
+ * For 2D transforms, we apply 1D FFT to each row, then to each column
+ */
+export class FFT2D {
+    constructor(sizeX, sizeY) {
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+
+        // Create 1D FFT objects for rows and columns
+        this.fftX = new FFT(sizeX);
+        this.fftY = new FFT(sizeY);
+
+        // Temporary buffers for row/column operations
+        this.rowBuffer = new Float64Array(sizeX * 2);
+        this.colBuffer = new Float64Array(sizeY * 2);
+    }
+
+    /**
+     * 2D Forward FFT (in-place)
+     * Transforms from position space to momentum space
+     */
+    forward(grid) {
+        // FFT along rows (x-direction)
+        for (let y = 0; y < this.sizeY; y++) {
+            // Extract row
+            const rowOffset = y * this.sizeX * 2;
+            for (let x = 0; x < this.sizeX; x++) {
+                this.rowBuffer[x * 2] = grid.data[rowOffset + x * 2];
+                this.rowBuffer[x * 2 + 1] = grid.data[rowOffset + x * 2 + 1];
+            }
+
+            // Transform row
+            const rowOut = this.fftX.createComplexArray();
+            this.fftX.transform(rowOut, this.rowBuffer);
+
+            // Write back
+            for (let x = 0; x < this.sizeX; x++) {
+                grid.data[rowOffset + x * 2] = rowOut[x * 2];
+                grid.data[rowOffset + x * 2 + 1] = rowOut[x * 2 + 1];
+            }
+        }
+
+        // FFT along columns (y-direction)
+        for (let x = 0; x < this.sizeX; x++) {
+            // Extract column
+            for (let y = 0; y < this.sizeY; y++) {
+                const idx = (y * this.sizeX + x) * 2;
+                this.colBuffer[y * 2] = grid.data[idx];
+                this.colBuffer[y * 2 + 1] = grid.data[idx + 1];
+            }
+
+            // Transform column
+            const colOut = this.fftY.createComplexArray();
+            this.fftY.transform(colOut, this.colBuffer);
+
+            // Write back
+            for (let y = 0; y < this.sizeY; y++) {
+                const idx = (y * this.sizeX + x) * 2;
+                grid.data[idx] = colOut[y * 2];
+                grid.data[idx + 1] = colOut[y * 2 + 1];
+            }
+        }
+    }
+
+    /**
+     * 2D Inverse FFT (in-place)
+     * Transforms from momentum space back to position space
+     */
+    inverse(grid) {
+        // IFFT along columns (y-direction)
+        for (let x = 0; x < this.sizeX; x++) {
+            // Extract column
+            for (let y = 0; y < this.sizeY; y++) {
+                const idx = (y * this.sizeX + x) * 2;
+                this.colBuffer[y * 2] = grid.data[idx];
+                this.colBuffer[y * 2 + 1] = grid.data[idx + 1];
+            }
+
+            // Inverse transform column
+            const colOut = this.fftY.createComplexArray();
+            this.fftY.inverseTransform(colOut, this.colBuffer);
+
+            // Write back
+            for (let y = 0; y < this.sizeY; y++) {
+                const idx = (y * this.sizeX + x) * 2;
+                grid.data[idx] = colOut[y * 2];
+                grid.data[idx + 1] = colOut[y * 2 + 1];
+            }
+        }
+
+        // IFFT along rows (x-direction)
+        for (let y = 0; y < this.sizeY; y++) {
+            // Extract row
+            const rowOffset = y * this.sizeX * 2;
+            for (let x = 0; x < this.sizeX; x++) {
+                this.rowBuffer[x * 2] = grid.data[rowOffset + x * 2];
+                this.rowBuffer[x * 2 + 1] = grid.data[rowOffset + x * 2 + 1];
+            }
+
+            // Inverse transform row
+            const rowOut = this.fftX.createComplexArray();
+            this.fftX.inverseTransform(rowOut, this.rowBuffer);
+
+            // Write back
+            for (let x = 0; x < this.sizeX; x++) {
+                grid.data[rowOffset + x * 2] = rowOut[x * 2];
+                grid.data[rowOffset + x * 2 + 1] = rowOut[x * 2 + 1];
+            }
+        }
+    }
+}
+
+/**
+ * Utility functions
+ */
+
+// Compute normalization constant for a ComplexGrid
+export function computeNorm(grid) {
+    return Math.sqrt(grid.sumAbs2());
+}
+
+// Normalize a ComplexGrid to unit total probability
+export function normalize(grid) {
+    const norm = computeNorm(grid);
+    if (norm > 1e-10) {
+        grid.scale(1.0 / norm);
+    }
+    return norm;
+}
+
+// Calculate total probability (should be 1 when normalized)
+export function totalProbability(grid, dx) {
+    return grid.sumAbs2() * dx * dx;
+}

@@ -1,0 +1,187 @@
+/**
+ * FFT.js - Fast Fourier Transform Library
+ *
+ * High-performance, pure JavaScript implementation of the Fast Fourier Transform
+ * using the Cooley-Tukey radix-2 algorithm.
+ *
+ * Features:
+ * - Optimized for power-of-2 sizes (64, 128, 256, 512, etc.)
+ * - Precomputed twiddle factors for maximum performance
+ * - Precomputed bit-reversal table
+ * - In-place and out-of-place transforms
+ * - Forward and inverse transforms
+ * - Float64Array for high precision (critical for quantum mechanics)
+ *
+ * Used for split-operator time evolution in quantum simulation:
+ * - Position space → Momentum space (forward FFT)
+ * - Momentum space → Position space (inverse FFT)
+ *
+ * Time Complexity: O(N log N)
+ * Space Complexity: O(N)
+ *
+ * @class FFT
+ * @author Quantum Playground Team
+ */
+
+export default class FFT {
+    constructor(size) {
+        this.size = size;
+
+        // Verify size is a power of 2
+        if ((size & (size - 1)) !== 0) {
+            throw new Error('FFT size must be a power of 2');
+        }
+
+        // Precompute bit-reversal table
+        this._bitrev = new Uint32Array(size);
+        for (let i = 0; i < size; i++) {
+            this._bitrev[i] = this._reverseBits(i, Math.log2(size));
+        }
+
+        // Precompute twiddle factors e^(-2�i*k/N)
+        this._cosTable = new Float64Array(size / 2);
+        this._sinTable = new Float64Array(size / 2);
+        for (let i = 0; i < size / 2; i++) {
+            const angle = -2 * Math.PI * i / size;
+            this._cosTable[i] = Math.cos(angle);
+            this._sinTable[i] = Math.sin(angle);
+        }
+    }
+
+    // Reverse bits of n using log2(size) bits
+    _reverseBits(n, bits) {
+        let reversed = 0;
+        for (let i = 0; i < bits; i++) {
+            reversed = (reversed << 1) | (n & 1);
+            n >>= 1;
+        }
+        return reversed;
+    }
+
+    // Create a complex array (interleaved [re, im, re, im, ...])
+    createComplexArray() {
+        return new Float64Array(this.size * 2);
+    }
+
+    // Convert real array to complex array
+    toComplexArray(real, imag = null) {
+        const complex = this.createComplexArray();
+        for (let i = 0; i < this.size; i++) {
+            complex[i * 2] = real[i];
+            complex[i * 2 + 1] = imag ? imag[i] : 0;
+        }
+        return complex;
+    }
+
+    // Extract real part from complex array
+    fromComplexArray(complex, storage = null) {
+        const real = storage || new Float64Array(this.size);
+        for (let i = 0; i < this.size; i++) {
+            real[i] = complex[i * 2];
+        }
+        return real;
+    }
+
+    /**
+     * Forward FFT: transform input to output
+     * input: complex array [re, im, re, im, ...]
+     * output: complex array (can be same as input for in-place)
+     */
+    transform(output, input) {
+        const size = this.size;
+
+        // Bit-reversal permutation
+        if (output !== input) {
+            for (let i = 0; i < size; i++) {
+                const j = this._bitrev[i];
+                output[i * 2] = input[j * 2];
+                output[i * 2 + 1] = input[j * 2 + 1];
+            }
+        } else {
+            // In-place bit-reversal (need temporary storage)
+            for (let i = 0; i < size; i++) {
+                const j = this._bitrev[i];
+                if (j > i) {
+                    // Swap
+                    const tempRe = output[i * 2];
+                    const tempIm = output[i * 2 + 1];
+                    output[i * 2] = output[j * 2];
+                    output[i * 2 + 1] = output[j * 2 + 1];
+                    output[j * 2] = tempRe;
+                    output[j * 2 + 1] = tempIm;
+                }
+            }
+        }
+
+        // Cooley-Tukey FFT
+        for (let len = 2; len <= size; len <<= 1) {
+            const halfLen = len >> 1;
+            const tableStep = size / len;
+
+            for (let i = 0; i < size; i += len) {
+                let k = 0;
+                for (let j = 0; j < halfLen; j++) {
+                    const idx1 = (i + j) * 2;
+                    const idx2 = (i + j + halfLen) * 2;
+
+                    // Get twiddle factor w = e^(-2�i*k/N)
+                    const wRe = this._cosTable[k];
+                    const wIm = this._sinTable[k];
+
+                    // t = w * output[idx2]
+                    const tRe = wRe * output[idx2] - wIm * output[idx2 + 1];
+                    const tIm = wRe * output[idx2 + 1] + wIm * output[idx2];
+
+                    // Butterfly operation
+                    const tempRe = output[idx1];
+                    const tempIm = output[idx1 + 1];
+
+                    output[idx1] = tempRe + tRe;
+                    output[idx1 + 1] = tempIm + tIm;
+
+                    output[idx2] = tempRe - tRe;
+                    output[idx2 + 1] = tempIm - tIm;
+
+                    k += tableStep;
+                }
+            }
+        }
+
+        return output;
+    }
+
+    /**
+     * Inverse FFT: transform input to output
+     * Same as forward FFT but with conjugation and normalization
+     */
+    inverseTransform(output, input) {
+        const size = this.size;
+
+        // Conjugate input
+        const conjugated = this.createComplexArray();
+        for (let i = 0; i < size; i++) {
+            conjugated[i * 2] = input[i * 2];
+            conjugated[i * 2 + 1] = -input[i * 2 + 1];
+        }
+
+        // Forward transform
+        this.transform(output, conjugated);
+
+        // Conjugate and normalize output
+        for (let i = 0; i < size; i++) {
+            output[i * 2] /= size;
+            output[i * 2 + 1] = -output[i * 2 + 1] / size;
+        }
+
+        return output;
+    }
+
+    /**
+     * Real-valued FFT (optimized for real input)
+     * For now, just use the complex FFT with zero imaginary part
+     */
+    realTransform(output, input) {
+        const complex = this.toComplexArray(input);
+        return this.transform(output, complex);
+    }
+}
