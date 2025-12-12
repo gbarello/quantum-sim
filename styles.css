@@ -74,7 +74,7 @@
   --touch-target-min: 44px;
 
   /* Canvas */
-  --canvas-max-width: 800px;
+  --canvas-max-width: 500px;
 }
 
 /* ============================================
@@ -193,7 +193,7 @@ main {
   position: relative;
   max-width: var(--canvas-max-width);
   margin: 0 auto;
-  aspect-ratio: 1;
+  aspect-ratio: 1.2; /* Allow extra width for potential plot */
   background-color: var(--bg-light);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-lg);
@@ -699,7 +699,7 @@ footer {
 
   .simulation-container {
     flex: 1;
-    max-width: 600px;
+    max-width: 400px;
   }
 
   .controls-panel {

@@ -172,37 +172,41 @@ export class QuantumSimulation {
                         break;
 
                     case 'double':
-                        // Double well: two Gaussian wells separated along x-axis
-                        const center1X = this.domainSize / 3;
-                        const center2X = 2 * this.domainSize / 3;
-                        const centerYDouble = this.domainSize / 2;
+                        // Double well: two narrow Gaussian wells separated along y-axis
+                        const centerXDouble = this.domainSize / 2;
+                        const center1Y = this.domainSize / 3;
+                        const center2Y = 2 * this.domainSize / 3;
+
+                        // Use narrower sigma for distinct wells (1/3 of standard width)
+                        const sigmaNarrow = sigma / 3;
 
                         // Distance from first well (handling periodic boundaries)
-                        let dx1 = Math.abs(x - center1X);
-                        let dy1 = Math.abs(y - centerYDouble);
+                        let dx1 = Math.abs(x - centerXDouble);
+                        let dy1 = Math.abs(y - center1Y);
                         if (dx1 > this.domainSize / 2) dx1 = this.domainSize - dx1;
                         if (dy1 > this.domainSize / 2) dy1 = this.domainSize - dy1;
                         const r2_1 = dx1 * dx1 + dy1 * dy1;
 
                         // Distance from second well (handling periodic boundaries)
-                        let dx2 = Math.abs(x - center2X);
-                        let dy2 = Math.abs(y - centerYDouble);
+                        let dx2 = Math.abs(x - centerXDouble);
+                        let dy2 = Math.abs(y - center2Y);
                         if (dx2 > this.domainSize / 2) dx2 = this.domainSize - dx2;
                         if (dy2 > this.domainSize / 2) dy2 = this.domainSize - dy2;
                         const r2_2 = dx2 * dx2 + dy2 * dy2;
 
-                        // Sum of two Gaussian wells
+                        // Sum of two narrow Gaussian wells
                         V = -this.potentialStrength * (
-                            Math.exp(-r2_1 / (2 * sigma * sigma)) +
-                            Math.exp(-r2_2 / (2 * sigma * sigma))
+                            Math.exp(-r2_1 / (2 * sigmaNarrow * sigmaNarrow)) +
+                            Math.exp(-r2_2 / (2 * sigmaNarrow * sigmaNarrow))
                         );
                         break;
 
                     case 'sinusoid':
-                        // Sinusoidal potential across the x-axis
-                        // V(x) = -V₀ * cos(2π * x / L)
-                        const wavelength = this.domainSize;
-                        V = -this.potentialStrength * Math.cos(2 * Math.PI * x / wavelength);
+                        // Sinusoidal potential across the y-axis
+                        // Periodic with 3 complete periods: minima at y = 0, L/3, 2L/3
+                        // V(y) = -V₀ * cos(2π * 3 * y / L) = -V₀ * cos(6π * y / L)
+                        // This ensures periodicity: V(0) = V(L) = -V₀
+                        V = -this.potentialStrength * Math.cos(6 * Math.PI * y / this.domainSize);
                         break;
 
                     default:

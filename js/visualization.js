@@ -172,13 +172,21 @@ export class Visualizer {
     const gridSize = this.simulation.gridSize;
     const psi = this.simulation.psi;
 
+    // Reserve space for potential plot on the right (if potential is active)
+    const potentialType = this.simulation.potentialType || 'none';
+    const hasPlot = (potentialType !== 'none');
+
+    // Calculate square grid area (grid should be square)
+    // Use canvas height as the basis to ensure grid stays square
+    const gridSize_pixels = this.canvas.height;
+    const plotWidth_pixels = hasPlot ? (this.canvas.width - gridSize_pixels) : 0;
+
     // Create image data
     const imageData = this.ctx.createImageData(this.canvas.width, this.canvas.height);
     const data = imageData.data;
 
-    // Calculate cell size in canvas pixels
-    const cellWidth = this.canvas.width / gridSize;
-    const cellHeight = this.canvas.height / gridSize;
+    // Calculate cell size - must be square
+    const cellSize = gridSize_pixels / gridSize;
 
     // Render each grid cell
     for (let gy = 0; gy < gridSize; gy++) {
@@ -193,10 +201,10 @@ export class Visualizer {
         const [r, g, b] = this.complexToColor(psiValue);
 
         // Fill all pixels in this grid cell
-        const startX = Math.floor(gx * cellWidth);
-        const startY = Math.floor(gy * cellHeight);
-        const endX = Math.floor((gx + 1) * cellWidth);
-        const endY = Math.floor((gy + 1) * cellHeight);
+        const startX = Math.floor(gx * cellSize);
+        const startY = Math.floor(gy * cellSize);
+        const endX = Math.floor((gx + 1) * cellSize);
+        const endY = Math.floor((gy + 1) * cellSize);
 
         for (let py = startY; py < endY; py++) {
           for (let px = startX; px < endX; px++) {
@@ -217,6 +225,9 @@ export class Visualizer {
     if (this.config.showGrid) {
       this.drawGrid();
     }
+
+    // Draw potential profile on the edge if there's a potential
+    this.drawPotentialProfile();
 
     // Draw measurement feedback if active
     if (this.measurementFeedback.active) {
@@ -240,27 +251,28 @@ export class Visualizer {
   drawGrid() {
     const gridSize = this.simulation.gridSize;
 
+    // Grid is square, based on canvas height
+    const gridSize_pixels = this.height;
+    const cellSize = gridSize_pixels / gridSize;
+
     this.ctx.strokeStyle = this.config.gridLineColor;
     this.ctx.lineWidth = this.config.gridLineWidth;
 
-    const cellWidth = this.width / gridSize;
-    const cellHeight = this.height / gridSize;
-
     // Draw vertical lines
     for (let i = 0; i <= gridSize; i++) {
-      const x = i * cellWidth;
+      const x = i * cellSize;
       this.ctx.beginPath();
       this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, this.height);
+      this.ctx.lineTo(x, gridSize_pixels);
       this.ctx.stroke();
     }
 
     // Draw horizontal lines
     for (let i = 0; i <= gridSize; i++) {
-      const y = i * cellHeight;
+      const y = i * cellSize;
       this.ctx.beginPath();
       this.ctx.moveTo(0, y);
-      this.ctx.lineTo(this.width, y);
+      this.ctx.lineTo(gridSize_pixels, y);
       this.ctx.stroke();
     }
   }
@@ -311,24 +323,127 @@ export class Visualizer {
   }
 
   /**
+   * Draw potential profile as a line plot to the right of the grid
+   * Shows the potential along the horizontal centerline of the grid
+   */
+  drawPotentialProfile() {
+    const gridSize = this.simulation.gridSize;
+    const potential = this.simulation.getPotential();
+    const potentialType = this.simulation.potentialType;
+
+    // Skip if no potential or potentialType is undefined
+    if (!potentialType || potentialType === 'none') {
+      return;
+    }
+
+    // Get potential values along the vertical centerline
+    const centerX = Math.floor(gridSize / 2);
+    const potentialProfile = [];
+
+    for (let gy = 0; gy < gridSize; gy++) {
+      const V = potential[gy * gridSize + centerX];
+      potentialProfile.push(V);
+    }
+
+    // Find min/max for normalization
+    let minV = Math.min(...potentialProfile);
+    let maxV = Math.max(...potentialProfile);
+
+    // Add small padding to avoid division by zero
+    if (Math.abs(maxV - minV) < 1e-10) {
+      minV -= 1;
+      maxV += 1;
+    }
+
+    // Calculate plot area (to the right of the square grid)
+    const gridSize_pixels = this.height; // Grid is square, based on height
+    const plotStartX = gridSize_pixels;
+    const plotWidth = this.width - gridSize_pixels;
+    const plotHeight = this.height;
+
+    this.ctx.save();
+
+    // No opaque background - plot is transparent showing the canvas background
+
+    // Add small padding inside the plot area
+    const padding = Math.max(5, plotWidth * 0.1);
+    const plotAreaWidth = Math.max(10, plotWidth - 2 * padding);
+
+    // Draw the potential profile as a thin red line
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.9)';
+    this.ctx.lineWidth = 2;
+
+    for (let i = 0; i < potentialProfile.length; i++) {
+      const V = potentialProfile[i];
+
+      // Normalize to 0-1 range (flip so negative potential extends right)
+      const normalized = 1 - ((V - minV) / (maxV - minV));
+
+      // Map to plot coordinates
+      const x = plotStartX + padding + normalized * plotAreaWidth;
+      const y = (i / (gridSize - 1)) * plotHeight;
+
+      if (i === 0) {
+        this.ctx.moveTo(x, y);
+      } else {
+        this.ctx.lineTo(x, y);
+      }
+    }
+
+    this.ctx.stroke();
+
+    // Draw reference line at zero potential if it's in range
+    if (minV <= 0 && maxV >= 0) {
+      const zeroNormalized = 1 - ((0 - minV) / (maxV - minV));
+      const zeroX = plotStartX + padding + zeroNormalized * plotAreaWidth;
+      this.ctx.beginPath();
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      this.ctx.lineWidth = 1;
+      this.ctx.setLineDash([5, 5]);
+      this.ctx.moveTo(zeroX, 0);
+      this.ctx.lineTo(zeroX, plotHeight);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+    }
+
+    // Draw label for potential type
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    this.ctx.font = '10px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'top';
+    const label = potentialType.charAt(0).toUpperCase() + potentialType.slice(1);
+    this.ctx.fillText(label, plotStartX + plotWidth / 2, 5);
+
+    // Draw axis labels
+    this.ctx.font = '8px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText('V(x)', plotStartX + plotWidth / 2, plotHeight - 10);
+
+    this.ctx.restore();
+  }
+
+  /**
    * Draw red circle showing measurement area at hover position
    */
   drawMeasurementCircle() {
     const { x, y } = this.hoverState;
     const gridSize = this.simulation.gridSize;
 
-    const cellWidth = this.width / gridSize;
-    const cellHeight = this.height / gridSize;
+    // Grid is square, based on canvas height
+    const gridSize_pixels = this.height;
+    const cellSize = gridSize_pixels / gridSize;
 
     // Convert grid coordinates to canvas coordinates (center of cell)
-    const canvasX = (x + 0.5) * cellWidth;
-    const canvasY = (y + 0.5) * cellHeight;
+    const canvasX = (x + 0.5) * cellSize;
+    const canvasY = (y + 0.5) * cellSize;
 
     // Get measurement radius from simulation (in grid units)
     const measurementRadius = this.simulation.measurementRadiusMultiplier;
 
     // Convert to canvas pixels
-    const radiusInPixels = measurementRadius * cellWidth;
+    const radiusInPixels = measurementRadius * cellSize;
 
     // Draw red circle
     this.ctx.beginPath();
@@ -360,11 +475,12 @@ export class Visualizer {
     const { x, y } = this.measurementFeedback;
     const gridSize = this.simulation.gridSize;
 
-    const cellWidth = this.width / gridSize;
-    const cellHeight = this.height / gridSize;
+    // Grid is square, based on canvas height
+    const gridSize_pixels = this.height;
+    const cellSize = gridSize_pixels / gridSize;
 
-    const canvasX = x * cellWidth;
-    const canvasY = y * cellHeight;
+    const canvasX = x * cellSize;
+    const canvasY = y * cellSize;
 
     // Choose color based on measurement type
     let color;
@@ -378,20 +494,20 @@ export class Visualizer {
 
     // Draw highlight rectangle
     this.ctx.fillStyle = color;
-    this.ctx.fillRect(canvasX, canvasY, cellWidth, cellHeight);
+    this.ctx.fillRect(canvasX, canvasY, cellSize, cellSize);
 
     // Draw border
     this.ctx.strokeStyle = color.replace(alpha * 0.6, alpha);
     this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(canvasX, canvasY, cellWidth, cellHeight);
+    this.ctx.strokeRect(canvasX, canvasY, cellSize, cellSize);
 
     // Draw expanding circle for positive measurements
     if (this.measurementFeedback.type === 'positive') {
-      const radius = cellWidth * 0.5 * (1 + progress * 2);
+      const radius = cellSize * 0.5 * (1 + progress * 2);
       this.ctx.beginPath();
       this.ctx.arc(
-        canvasX + cellWidth / 2,
-        canvasY + cellHeight / 2,
+        canvasX + cellSize / 2,
+        canvasY + cellSize / 2,
         radius,
         0,
         Math.PI * 2
@@ -516,12 +632,14 @@ export class Visualizer {
    */
   canvasToGrid(canvasX, canvasY) {
     const gridSize = this.simulation.gridSize;
-    const cellWidth = this.width / gridSize;
-    const cellHeight = this.height / gridSize;
+
+    // Grid is square, based on canvas height
+    const gridSize_pixels = this.height;
+    const cellSize = gridSize_pixels / gridSize;
 
     return {
-      x: Math.floor(canvasX / cellWidth),
-      y: Math.floor(canvasY / cellHeight)
+      x: Math.floor(canvasX / cellSize),
+      y: Math.floor(canvasY / cellSize)
     };
   }
 
