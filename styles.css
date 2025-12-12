@@ -894,6 +894,37 @@ footer {
   .info-panel {
     margin-bottom: var(--spacing-xxl);
   }
+
+  /* Sleeker sliders on desktop */
+  .slider-control input[type="range"] {
+    height: 4px;
+    min-height: auto;
+    padding: var(--spacing-sm) 0;
+  }
+
+  .slider-control input[type="range"]::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  .slider-control input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  .slider-control label {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .slider-labels {
+    font-size: 0.65rem;
+    margin-top: 0;
+  }
+
+  .value-display {
+    font-size: var(--font-size-sm);
+  }
 }
 
 /* Large Desktop (1400px and up) */

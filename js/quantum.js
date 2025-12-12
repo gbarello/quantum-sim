@@ -83,6 +83,7 @@ export class QuantumSimulation {
         // Potential well parameters
         this.potentialType = 'none'; // Options: 'none', 'single', 'double', 'sinusoid'
         this.potentialStrength = 50.0; // Depth of potential well
+        this.potentialStrengthScale = 1.0; // Scale multiplier for potential strength (0.1 to 10)
         this.potentialWidth = this.domainSize / 4; // Standard deviation = 1/4 of domain
 
         // Precompute potential grid
@@ -213,7 +214,8 @@ export class QuantumSimulation {
                         V = 0;
                 }
 
-                this.potential[iy * N + ix] = V;
+                // Apply strength scale multiplier
+                this.potential[iy * N + ix] = V * this.potentialStrengthScale;
             }
         }
     }
@@ -677,6 +679,21 @@ export class QuantumSimulation {
      */
     getPotentialType() {
         return this.potentialType;
+    }
+
+    /**
+     * Set the potential strength scale and recompute the potential grid
+     * @param {number} scale - Strength scale multiplier (0.1 to 10, default 1.0)
+     */
+    setPotentialStrengthScale(scale) {
+        // Clamp to valid range
+        this.potentialStrengthScale = Math.max(0.1, Math.min(10.0, scale));
+
+        // Recompute the potential grid with the new scale
+        this._precomputePotential();
+
+        // Recompute the potential operator
+        this._precomputePotentialOperator();
     }
 
     /**

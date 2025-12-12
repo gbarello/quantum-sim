@@ -24,6 +24,10 @@ export class Controller {
    * @param {HTMLButtonElement} uiElements.resetBtn - Reset button
    * @param {HTMLInputElement} uiElements.speedSlider - Speed control slider
    * @param {HTMLElement} uiElements.speedValue - Speed display element
+   * @param {HTMLInputElement} uiElements.measurementRadiusSlider - Measurement radius slider
+   * @param {HTMLElement} uiElements.measurementRadiusValue - Measurement radius display
+   * @param {HTMLInputElement} uiElements.potentialStrengthSlider - Potential strength slider
+   * @param {HTMLElement} uiElements.potentialStrengthValue - Potential strength display
    * @param {HTMLSelectElement} uiElements.gridSizeSelect - Grid size selector
    * @param {HTMLElement} uiElements.totalProbDisplay - Total probability display
    * @param {HTMLElement} uiElements.timeDisplay - Time elapsed display
@@ -75,6 +79,7 @@ export class Controller {
     this.handleReset = this.handleReset.bind(this);
     this.handleSpeedControl = this.handleSpeedControl.bind(this);
     this.handleMeasurementRadiusControl = this.handleMeasurementRadiusControl.bind(this);
+    this.handlePotentialStrengthControl = this.handlePotentialStrengthControl.bind(this);
     this.handleGridSizeChange = this.handleGridSizeChange.bind(this);
     this.handlePotentialTypeChange = this.handlePotentialTypeChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
@@ -134,6 +139,11 @@ export class Controller {
     // Measurement radius slider
     if (this.ui.measurementRadiusSlider) {
       this.ui.measurementRadiusSlider.addEventListener('input', this.handleMeasurementRadiusControl);
+    }
+
+    // Potential strength slider
+    if (this.ui.potentialStrengthSlider) {
+      this.ui.potentialStrengthSlider.addEventListener('input', this.handlePotentialStrengthControl);
     }
 
     // Potential type radio buttons
@@ -203,6 +213,14 @@ export class Controller {
 
     if (this.ui.speedSlider) {
       this.ui.speedSlider.removeEventListener('input', this.handleSpeedControl);
+    }
+
+    if (this.ui.measurementRadiusSlider) {
+      this.ui.measurementRadiusSlider.removeEventListener('input', this.handleMeasurementRadiusControl);
+    }
+
+    if (this.ui.potentialStrengthSlider) {
+      this.ui.potentialStrengthSlider.removeEventListener('input', this.handlePotentialStrengthControl);
     }
 
     if (this.ui.gridSizeSelect) {
@@ -529,6 +547,26 @@ export class Controller {
 
     if (this.ui.measurementRadiusValue) {
       this.ui.measurementRadiusValue.textContent = radius.toFixed(1);
+    }
+  }
+
+  /**
+   * Handle potential strength control slider
+   * @param {Event} event - Input event
+   */
+  handlePotentialStrengthControl(event) {
+    const sliderValue = parseInt(event.target.value, 10);
+    // Map slider value (-10 to 10) to strength scale (0.1 to 10) on log scale
+    // value = 0 -> scale = 1.0 (default)
+    // value = -10 -> scale = 0.1
+    // value = 10 -> scale = 10.0
+    const scale = Math.pow(10, sliderValue / 10);
+
+    // Update simulation potential strength
+    this.simulation.setPotentialStrengthScale(scale);
+
+    if (this.ui.potentialStrengthValue) {
+      this.ui.potentialStrengthValue.textContent = scale.toFixed(1);
     }
   }
 

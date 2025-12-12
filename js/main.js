@@ -112,6 +112,8 @@ class QuantumPlaygroundApp {
         speedValue: document.getElementById('speed-value'),
         measurementRadiusSlider: document.getElementById('measurement-radius-slider'),
         measurementRadiusValue: document.getElementById('measurement-radius-value'),
+        potentialStrengthSlider: document.getElementById('potential-strength-slider'),
+        potentialStrengthValue: document.getElementById('potential-strength-value'),
         gridSizeSelect: document.getElementById('grid-size'),
         gridToggle: document.getElementById('grid-toggle'),
         vizModeSelect: document.getElementById('viz-mode'),
