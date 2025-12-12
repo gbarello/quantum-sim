@@ -72,7 +72,8 @@ export class Visualizer {
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
 
-    // Scale context to account for device pixel ratio
+    // Reset transform and scale context to account for device pixel ratio
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
 
     // Store logical dimensions

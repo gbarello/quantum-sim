@@ -15,6 +15,58 @@
 
   <main>
     <div class="simulation-wrapper">
+      <!-- Left Panel: Initial Conditions -->
+      <div class="left-panel controls-panel">
+        <h2 class="panel-title">Initial Conditions</h2>
+
+        <div class="control-group">
+          <label class="control-label">Starting Position:</label>
+          <canvas id="position-selector" class="selector-canvas" width="120" height="120"
+                  aria-label="Select starting position"></canvas>
+          <div class="selector-info">
+            <span id="position-display" class="selector-value">x: 0.00, y: 0.00</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Starting Momentum:</label>
+          <canvas id="momentum-selector" class="selector-canvas" width="120" height="120"
+                  aria-label="Select starting momentum"></canvas>
+          <div class="selector-info">
+            <span id="momentum-display" class="selector-value">px: 0.00, py: 0.00</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="slider-control">
+            <label for="packet-size-slider">
+              Packet Size: <span id="packet-size-value" class="value-display">1.0</span>
+            </label>
+            <input
+              type="range"
+              id="packet-size-slider"
+              min="20"
+              max="200"
+              value="100"
+              step="1"
+              aria-label="Adjust packet size"
+            >
+            <div class="slider-labels">
+              <span>0.2</span>
+              <span>2.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <button id="reset" class="btn btn-secondary btn-full-width" aria-label="Reset simulation">
+            <span class="btn-icon" aria-hidden="true">↻</span>
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center: Canvas -->
       <div class="simulation-container">
         <canvas id="quantum-canvas" aria-label="Quantum simulation canvas"></canvas>
         <div class="info-overlay" id="info-overlay" aria-live="polite">
@@ -25,17 +77,15 @@
         </div>
       </div>
 
-      <div class="controls-panel">
-      <div class="control-group">
-        <button id="play-pause" class="btn btn-primary" aria-label="Play or pause simulation">
-          <span class="btn-icon" aria-hidden="true">�</span>
-          <span class="btn-text">Play</span>
-        </button>
-        <button id="reset" class="btn btn-secondary" aria-label="Reset simulation">
-          <span class="btn-icon" aria-hidden="true">�</span>
-          <span class="btn-text">Reset</span>
-        </button>
-      </div>
+      <!-- Right Panel: Simulation Controls -->
+      <div class="right-panel controls-panel">
+        <h2 class="panel-title">Simulation Controls</h2>
+        <div class="control-group">
+          <button id="play-pause" class="btn btn-primary btn-full-width" aria-label="Play or pause simulation">
+            <span class="btn-icon" aria-hidden="true">▶</span>
+            <span class="btn-text">Play</span>
+          </button>
+        </div>
 
       <div class="control-group">
         <div class="slider-control">
@@ -86,7 +136,7 @@
       </div>
 
       <div class="control-group">
-        <div class="toggle-control">
+        <div class="toggle-control visualization-control">
           <label for="viz-mode">Visualization:</label>
           <select id="viz-mode" aria-label="Select visualization mode">
             <option value="complex" selected>Complex (Phase + Amplitude)</option>
@@ -97,37 +147,28 @@
       </div>
 
       <div class="control-group">
-        <div class="toggle-control">
-          <label>
-            <input type="checkbox" id="show-grid" aria-label="Toggle grid overlay">
-            <span>Show Grid</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="control-group">
-        <div class="toggle-control">
+        <div class="toggle-control potential-control">
           <label>Potential Well:</label>
           <div class="radio-group">
             <label>
-              <input type="radio" name="potential-type" value="none" checked aria-label="No potential">
               <span>None</span>
+              <input type="radio" name="potential-type" value="none" checked aria-label="No potential">
             </label>
             <label>
+              <span>Single</span>
               <input type="radio" name="potential-type" value="single" aria-label="Single well potential">
-              <span>Single Well</span>
             </label>
             <label>
+              <span>Double</span>
               <input type="radio" name="potential-type" value="double" aria-label="Double well potential">
-              <span>Double Well</span>
             </label>
             <label>
+              <span>Sin</span>
               <input type="radio" name="potential-type" value="sinusoid" aria-label="Sinusoidal potential">
-              <span>Sinusoid</span>
             </label>
           </div>
         </div>
-      </div>
+        </div>
       </div>
     </div>
 

@@ -63,7 +63,8 @@ The application follows a **Model-View-Controller (MVC)** pattern with clean sep
 
 3. **User Interface Controller** (`controls.js`)
    - Manages DOM event handlers
-   - Coordinates user input (clicks, keyboard, sliders)
+   - Coordinates user input (clicks, keyboard, sliders, canvas selectors)
+   - Handles initial condition selection (position, momentum, packet size)
    - Updates UI state indicators
    - Bridges user actions to physics/visualization
 
@@ -88,10 +89,10 @@ quantum-play/
 ├── styles.css                    # Complete styling (mobile-first responsive)
 │
 ├── js/                           # Application modules (ES6)
-│   ├── main.js                   # App coordinator & initialization (301 lines)
+│   ├── main.js                   # App coordinator & initialization (307 lines)
 │   ├── quantum.js                # Physics engine & simulation (748 lines)
 │   ├── visualization.js          # Canvas rendering & display (726 lines)
-│   ├── controls.js               # User interface controller (597 lines)
+│   ├── controls.js               # User interface controller (919 lines)
 │   └── utils.js                  # Utilities & complex math (908 lines)
 │
 ├── lib/                          # External libraries
@@ -244,18 +245,24 @@ animate(timestamp) {
   <main>                            # Central content area
     <div class="simulation-wrapper">  # Flex container
 
+      <div class="left-panel controls-panel">  # Initial conditions
+        <div class="control-group">   # Position selector canvas
+        <div class="control-group">   # Momentum selector canvas
+        <div class="control-group">   # Packet size slider
+        <div class="control-group">   # Reset button
+      </div>
+
       <div class="simulation-container">  # Canvas + overlays
         <canvas id="quantum-canvas">...</canvas>
         <div class="info-overlay">...</div>      # Measurement feedback
         <div class="hover-info">...</div>        # Probability tooltip
       </div>
 
-      <div class="controls-panel">    # User controls
-        <div class="control-group">   # Play/Pause/Reset buttons
+      <div class="right-panel controls-panel">  # Simulation controls
+        <div class="control-group">   # Play/Pause button
         <div class="control-group">   # Speed slider
         <div class="control-group">   # Measurement radius slider
         <div class="control-group">   # Visualization mode select
-        <div class="control-group">   # Grid toggle checkbox
         <div class="control-group">   # Potential well radio buttons
       </div>
 
@@ -290,16 +297,18 @@ CSS Custom Properties (`--primary-color`, `--spacing-md`, etc.) provide consiste
 
 ### User Interaction Points
 
-1. **Canvas Click** → Quantum measurement at click location
-2. **Canvas Hover** → Display probability at cursor position
-3. **Play/Pause Button** → Toggle simulation evolution
-4. **Reset Button** → Reinitialize wavefunction
-5. **Speed Slider** → Adjust time evolution rate (0.01x - 1.0x)
-6. **Measurement Radius Slider** → Size of measurement region
-7. **Visualization Mode Dropdown** → Switch rendering modes
-8. **Show Grid Checkbox** → Toggle grid overlay
-9. **Potential Well Radio** → Select potential configuration
-10. **Keyboard Shortcuts** → Space (play/pause), R (reset), Esc (close overlay)
+1. **Position Selector Canvas** → Click to set initial particle position
+2. **Momentum Selector Canvas** → Click to set initial particle momentum (direction)
+3. **Packet Size Slider** → Adjust initial wavepacket width (0.2 - 2.0)
+4. **Canvas Click** → Quantum measurement at click location
+5. **Canvas Hover** → Display probability at cursor position
+6. **Play/Pause Button** → Toggle simulation evolution
+7. **Reset Button** → Reinitialize wavefunction with custom initial conditions
+8. **Speed Slider** → Adjust time evolution rate (0.01x - 1.0x)
+9. **Measurement Radius Slider** → Size of measurement region
+10. **Visualization Mode Dropdown** → Switch rendering modes (Complex/Probability/Phase)
+11. **Potential Well Radio** → Select potential configuration (None/Single/Double/Sinusoidal)
+12. **Keyboard Shortcuts** → Space (play/pause), R (reset), Esc (close overlay)
 
 ### Accessibility Features
 

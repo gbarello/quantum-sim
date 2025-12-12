@@ -161,16 +161,23 @@ quantum-play/
 - **Viewing:** Default mode for observation
 
 **UI Elements Managed:**
+- **Initial Condition Controls:**
+  - Position selector canvas (click to set starting position)
+  - Momentum selector canvas (click to set starting momentum)
+  - Packet size slider (adjust wavepacket width)
 - Mode buttons (add potential, measure, view)
 - Visualization mode selector
-- Control buttons (reset, clear potentials, play/pause)
+- Control buttons (reset, play/pause)
+- Speed and measurement radius sliders
+- Potential well type selector (radio buttons)
 - Time display and statistics
-- Help overlay
+- Hover probability tooltip
 
 **Event Handling:**
-- Canvas mouse/touch events
+- Canvas mouse/touch events (main canvas and selector canvases)
 - Keyboard shortcuts
 - Button clicks
+- Slider input events
 - Real-time UI updates
 
 ---
@@ -510,14 +517,14 @@ Key areas:
 
 | File | Lines | Complexity | Purpose |
 |------|-------|------------|---------|
-| `js/main.js` | 301 | Low | Simple orchestration |
+| `js/main.js` | 307 | Low | Simple orchestration |
 | `js/quantum.js` | 748 | High | Complex physics algorithms |
 | `js/visualization.js` | 726 | Medium | Canvas rendering logic |
-| `js/controls.js` | 597 | Medium | Event handling and UI |
+| `js/controls.js` | 919 | Medium | Event handling and UI with initial condition controls |
 | `js/utils.js` | 908 | Medium | Math utilities and grids |
 | `lib/fft.js` | 322 | High | Optimized FFT algorithm |
 
-**Total Application Code:** ~3,600 lines
+**Total Application Code:** ~3,930 lines
 
 ---
 
@@ -638,10 +645,32 @@ For detailed information on specific components:
 
 ## Quick Reference for Common Operations
 
-### Resetting the Simulation
+### Resetting the Simulation with Custom Initial Conditions
+
+**Via UI (User):**
+1. Click position selector canvas to set starting position
+2. Click momentum selector canvas to set starting momentum
+3. Adjust packet size slider to set wavepacket width
+4. Click Reset button to apply changes
+
+**Programmatically:**
 ```javascript
-app.simulation.reset();
-app.simulation.initializeGaussianWavepacket(x0, y0, width, px, py);
+// Set initial conditions in controller
+app.controller.initialPosition = { x: 0.5, y: 0.5 };  // Normalized 0-1
+app.controller.initialMomentum = { x: 0.6, y: 0.4 };  // Normalized 0-1
+app.controller.packetSize = 1.2;  // Multiplier
+
+// Trigger reset
+app.controller.handleReset();
+
+// Or directly initialize simulation
+app.simulation.initialize({
+  centerX: 64,      // Grid coordinates
+  centerY: 64,
+  width: 0.6,       // Physical width
+  momentumX: 1.0,   // Physical momentum
+  momentumY: 0.6
+});
 ```
 
 ### Adding a Potential Well
@@ -652,17 +681,17 @@ app.simulation.addGaussianPotential(x, y, strength, width);
 ### Performing a Measurement
 ```javascript
 const result = app.simulation.measure(x, y);
-// result = { x, y, probability }
+// result = { found: boolean, probability: number }
 ```
 
 ### Changing Visualization Mode
 ```javascript
-app.visualizer.setMode('probability'); // or 'full', 'phase'
+app.visualizer.setVisualizationMode('probability'); // or 'full', 'phase'
 ```
 
 ### Pausing/Resuming
 ```javascript
-app.controller.togglePause();
+app.controller.handlePlayPause();
 ```
 
 ---

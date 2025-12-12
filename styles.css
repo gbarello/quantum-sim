@@ -185,12 +185,13 @@ main {
 .simulation-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
 }
 
 .simulation-container {
   position: relative;
+  width: 100%;
   max-width: var(--canvas-max-width);
   margin: 0 auto;
   aspect-ratio: 1.2; /* Allow extra width for potential plot */
@@ -266,7 +267,7 @@ main {
 }
 
 /* ============================================
-   Controls Panel
+   Control Panels (Left and Right)
    ============================================ */
 .controls-panel {
   background-color: var(--bg-light);
@@ -277,6 +278,70 @@ main {
   flex-direction: column;
   gap: var(--spacing-lg);
   flex-shrink: 0;
+  width: 100%;
+}
+
+.left-panel {
+  order: 1;
+}
+
+.simulation-container {
+  order: 2;
+}
+
+.right-panel {
+  order: 3;
+}
+
+.panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+  text-align: center;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: var(--spacing-sm);
+}
+
+.control-label {
+  display: block;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-color);
+}
+
+/* Selector Canvases (Position & Momentum) */
+.selector-canvas {
+  display: block;
+  margin: 0 auto;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  cursor: crosshair;
+  background-color: var(--bg-color);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.selector-canvas:hover {
+  border-color: var(--accent-color);
+}
+
+.selector-info {
+  margin-top: var(--spacing-sm);
+  text-align: center;
+}
+
+.selector-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+  display: block;
+}
+
+.btn-full-width {
+  width: 100%;
+  min-width: auto;
 }
 
 .control-group {
@@ -432,6 +497,32 @@ main {
   min-height: var(--touch-target-min);
 }
 
+/* Visualization Control - vertical layout */
+.visualization-control {
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.visualization-control label {
+  margin-bottom: var(--spacing-xs);
+}
+
+.visualization-control select {
+  width: 100%;
+}
+
+/* Potential Control - horizontal layout */
+.potential-control {
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.potential-control > label {
+  margin-bottom: var(--spacing-sm);
+}
+
 .toggle-control label {
   display: flex;
   align-items: center;
@@ -449,15 +540,17 @@ main {
 
 .toggle-control .radio-group {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  flex-direction: row;
+  gap: var(--spacing-md);
   width: 100%;
+  justify-content: space-around;
 }
 
 .toggle-control .radio-group label {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   font-weight: 400;
   cursor: pointer;
   padding: var(--spacing-xs);
@@ -467,6 +560,11 @@ main {
 
 .toggle-control .radio-group label:hover {
   background-color: var(--bg-color);
+}
+
+.toggle-control .radio-group label span {
+  font-size: var(--font-size-sm);
+  text-align: center;
 }
 
 .toggle-control input[type="radio"] {
@@ -693,18 +791,28 @@ footer {
   }
 
   .simulation-wrapper {
-    flex-direction: row;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    gap: var(--spacing-lg);
+    align-items: start;
+  }
+
+  .left-panel {
+    order: 0;
   }
 
   .simulation-container {
-    flex: 1;
-    max-width: 400px;
+    order: 0;
+    max-width: 100%;
+  }
+
+  .right-panel {
+    order: 0;
   }
 
   .controls-panel {
-    width: 300px;
-    max-width: 300px;
+    width: auto;
+    max-width: none;
   }
 
   .control-group {
@@ -746,20 +854,16 @@ footer {
     padding: var(--spacing-xxl) var(--spacing-xl);
   }
 
+  .simulation-wrapper {
+    grid-template-columns: 250px 1fr 250px;
+    margin-bottom: var(--spacing-xxl);
+  }
+
   .simulation-container {
     max-width: var(--canvas-max-width);
   }
 
-  .controls-panel {
-    width: 350px;
-    max-width: 350px;
-  }
-
   .info-panel {
-    margin-bottom: var(--spacing-xxl);
-  }
-
-  .simulation-wrapper {
     margin-bottom: var(--spacing-xxl);
   }
 }

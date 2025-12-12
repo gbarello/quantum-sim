@@ -138,10 +138,16 @@ class QuantumPlaygroundApp {
         gridSizeSelect: document.getElementById('grid-size'),
         gridToggle: document.getElementById('grid-toggle'),
         vizModeSelect: document.getElementById('viz-mode'),
-        totalProbDisplay: document.getElementById('total-prob'),
+        totalProbDisplay: document.getElementById('total-probability'),
         timeDisplay: document.getElementById('time-elapsed'),
-        measurementResult: document.querySelector('.measurement-result'),
-        hoverInfo: document.querySelector('.hover-info')
+        measurementResult: document.getElementById('info-overlay'),
+        hoverProbability: document.getElementById('hover-info'),
+        positionSelector: document.getElementById('position-selector'),
+        momentumSelector: document.getElementById('momentum-selector'),
+        packetSizeSlider: document.getElementById('packet-size-slider'),
+        packetSizeValue: document.getElementById('packet-size-value'),
+        positionDisplay: document.getElementById('position-display'),
+        momentumDisplay: document.getElementById('momentum-display')
       };
 
       // Verify all UI elements exist

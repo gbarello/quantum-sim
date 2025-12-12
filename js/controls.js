@@ -30,6 +30,12 @@ export class Controller {
    * @param {HTMLElement} uiElements.measurementResult - Measurement result message
    * @param {HTMLElement} uiElements.hoverProbability - Hover probability tooltip
    * @param {Object} uiElements.vizModeToggles - Visualization mode toggle buttons
+   * @param {HTMLCanvasElement} uiElements.positionSelector - Position selector canvas
+   * @param {HTMLCanvasElement} uiElements.momentumSelector - Momentum selector canvas
+   * @param {HTMLInputElement} uiElements.packetSizeSlider - Packet size slider
+   * @param {HTMLElement} uiElements.packetSizeValue - Packet size display
+   * @param {HTMLElement} uiElements.positionDisplay - Position value display
+   * @param {HTMLElement} uiElements.momentumDisplay - Momentum value display
    */
   constructor(simulation, visualizer, uiElements) {
     this.simulation = simulation;
@@ -37,11 +43,16 @@ export class Controller {
     this.ui = uiElements;
 
     // State
-    this.isPlaying = true;
+    this.isPlaying = false; // Start paused
     this.stepsPerFrame = 5; // Default physics steps per render frame
     this.gridSize = simulation.gridSize;
     this.measurementInProgress = false;
     this.measurementResultTimeout = null;
+
+    // Initial condition state (normalized 0-1)
+    this.initialPosition = { x: 0.5, y: 0.5 }; // Center
+    this.initialMomentum = { x: 0.5, y: 0.5 }; // Zero momentum (center)
+    this.packetSize = 1.0; // Default packet size
 
     // Timing for stats
     this.elapsedTime = 0;
@@ -66,12 +77,24 @@ export class Controller {
     this.handleTouchStart = this.handleTouchStart.bind(this);
     this.handleTouchMove = this.handleTouchMove.bind(this);
     this.handleTouchEnd = this.handleTouchEnd.bind(this);
+    this.handlePositionSelectorClick = this.handlePositionSelectorClick.bind(this);
+    this.handleMomentumSelectorClick = this.handleMomentumSelectorClick.bind(this);
+    this.handlePacketSizeControl = this.handlePacketSizeControl.bind(this);
 
     // Setup event listeners
     this.setupEventListeners();
 
+    // Draw initial selector canvases
+    this.drawPositionSelector();
+    this.drawMomentumSelector();
+
+    // Update initial displays
+    this.updatePositionDisplay();
+    this.updateMomentumDisplay();
+
     // Initial UI update
     this.updateUI();
+    this.updatePlayPauseButton();
   }
 
   /**
@@ -125,6 +148,30 @@ export class Controller {
       this.ui.vizModeSelect.addEventListener('change', this.handleVizModeChange.bind(this));
     }
 
+    // Position selector
+    if (this.ui.positionSelector) {
+      this.ui.positionSelector.addEventListener('click', this.handlePositionSelectorClick);
+      console.log('Position selector event listener attached');
+    } else {
+      console.warn('Position selector element not found, cannot attach event listener');
+    }
+
+    // Momentum selector
+    if (this.ui.momentumSelector) {
+      this.ui.momentumSelector.addEventListener('click', this.handleMomentumSelectorClick);
+      console.log('Momentum selector event listener attached');
+    } else {
+      console.warn('Momentum selector element not found, cannot attach event listener');
+    }
+
+    // Packet size slider
+    if (this.ui.packetSizeSlider) {
+      this.ui.packetSizeSlider.addEventListener('input', this.handlePacketSizeControl);
+      console.log('Packet size slider event listener attached');
+    } else {
+      console.warn('Packet size slider element not found, cannot attach event listener');
+    }
+
     // Keyboard shortcuts
     document.addEventListener('keydown', this.handleKeyPress);
   }
@@ -158,6 +205,18 @@ export class Controller {
       this.ui.gridSizeSelect.removeEventListener('change', this.handleGridSizeChange);
     }
 
+    if (this.ui.positionSelector) {
+      this.ui.positionSelector.removeEventListener('click', this.handlePositionSelectorClick);
+    }
+
+    if (this.ui.momentumSelector) {
+      this.ui.momentumSelector.removeEventListener('click', this.handleMomentumSelectorClick);
+    }
+
+    if (this.ui.packetSizeSlider) {
+      this.ui.packetSizeSlider.removeEventListener('input', this.handlePacketSizeControl);
+    }
+
     document.removeEventListener('keydown', this.handleKeyPress);
   }
 
@@ -176,9 +235,14 @@ export class Controller {
     const x = (canvasX - rect.left) * scaleX;
     const y = (canvasY - rect.top) * scaleY;
 
+    // The grid is square, using canvas height as the dimension
+    // (matches the rendering in visualization.js line 181)
+    const gridSize_pixels = this.ui.canvas.height;
+    const cellSize = gridSize_pixels / this.gridSize;
+
     // Convert to grid coordinates
-    const gridX = Math.floor(x / this.ui.canvas.width * this.gridSize);
-    const gridY = Math.floor(y / this.ui.canvas.height * this.gridSize);
+    const gridX = Math.floor(x / cellSize);
+    const gridY = Math.floor(y / cellSize);
 
     // Clamp to valid range
     return {
@@ -365,12 +429,42 @@ export class Controller {
   }
 
   /**
-   * Handle reset button - reinitialize simulation
+   * Handle reset button - reinitialize simulation with custom initial conditions
    */
   handleReset() {
-    // Reset simulation to initial state
+    // Convert normalized initial position to grid coordinates
+    const centerX = this.initialPosition.x * this.gridSize;
+    const centerY = this.initialPosition.y * this.gridSize;
+
+    // Convert normalized momentum to physical momentum
+    const maxMomentum = 5.0;
+    const momentumX = (this.initialMomentum.x - 0.5) * 2 * maxMomentum;
+    const momentumY = (this.initialMomentum.y - 0.5) * 2 * maxMomentum;
+
+    // Convert packet size to physical width
+    const width = this.packetSize * this.simulation.dx * 3;
+
+    console.log('Resetting with initial conditions:', {
+      position: this.initialPosition,
+      centerX,
+      centerY,
+      momentum: this.initialMomentum,
+      momentumX,
+      momentumY,
+      packetSize: this.packetSize,
+      width
+    });
+
+    // Reset simulation with custom initial conditions
     if (this.simulation && this.simulation.initialize) {
-      this.simulation.initialize();
+      this.simulation.initialize({
+        centerX: centerX,
+        centerY: centerY,
+        width: width,
+        momentumX: momentumX,
+        momentumY: momentumY
+      });
+      this.simulation.time = 0;
     }
 
     // Reset elapsed time
@@ -378,7 +472,7 @@ export class Controller {
 
     // Clear any measurement messages
     if (this.ui.measurementResult) {
-      this.ui.measurementResult.style.display = 'none';
+      this.ui.measurementResult.classList.remove('visible');
     }
 
     // Clear highlights
@@ -389,8 +483,8 @@ export class Controller {
     // Update UI
     this.updateUI();
 
-    // Resume playing if was paused
-    this.isPlaying = true;
+    // Start paused
+    this.isPlaying = false;
     this.updatePlayPauseButton();
   }
 
@@ -513,6 +607,234 @@ export class Controller {
           this.ui.measurementResult.style.display = 'none';
         }
         break;
+    }
+  }
+
+  /**
+   * Handle position selector click
+   * @param {MouseEvent} event - Click event
+   */
+  handlePositionSelectorClick(event) {
+    const canvas = this.ui.positionSelector;
+    if (!canvas) {
+      console.error('Position selector canvas not found in click handler');
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+
+    console.log('Position selected:', x, y);
+    this.initialPosition = { x, y };
+    this.drawPositionSelector();
+    this.updatePositionDisplay();
+  }
+
+  /**
+   * Handle momentum selector click
+   * @param {MouseEvent} event - Click event
+   */
+  handleMomentumSelectorClick(event) {
+    const canvas = this.ui.momentumSelector;
+    if (!canvas) {
+      console.error('Momentum selector canvas not found in click handler');
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+
+    console.log('Momentum selected:', x, y);
+    this.initialMomentum = { x, y };
+    this.drawMomentumSelector();
+    this.updateMomentumDisplay();
+  }
+
+  /**
+   * Handle packet size slider
+   * @param {Event} event - Input event
+   */
+  handlePacketSizeControl(event) {
+    const sliderValue = parseInt(event.target.value, 10);
+    // Map slider value (20 to 200) to packet size (0.2 to 2.0)
+    this.packetSize = sliderValue / 100;
+
+    if (this.ui.packetSizeValue) {
+      this.ui.packetSizeValue.textContent = this.packetSize.toFixed(1);
+    }
+  }
+
+  /**
+   * Draw position selector canvas
+   */
+  drawPositionSelector() {
+    const canvas = this.ui.positionSelector;
+    if (!canvas) {
+      console.warn('Position selector canvas not found');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('Could not get 2D context for position selector');
+      return;
+    }
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Clear canvas
+    ctx.fillStyle = '#ecf0f1';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw grid
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const pos = (i * width) / 4;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(width, pos);
+      ctx.stroke();
+    }
+
+    // Draw center crosshair
+    ctx.strokeStyle = '#95a5a6';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width / 2, height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw selected position as red dot
+    const dotX = this.initialPosition.x * width;
+    const dotY = this.initialPosition.y * height;
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 5, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  /**
+   * Draw momentum selector canvas
+   */
+  drawMomentumSelector() {
+    const canvas = this.ui.momentumSelector;
+    if (!canvas) {
+      console.warn('Momentum selector canvas not found');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('Could not get 2D context for momentum selector');
+      return;
+    }
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Clear canvas
+    ctx.fillStyle = '#ecf0f1';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw grid
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const pos = (i * width) / 4;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(width, pos);
+      ctx.stroke();
+    }
+
+    // Draw center crosshair (zero momentum)
+    ctx.strokeStyle = '#95a5a6';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width / 2, height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw selected momentum as arrow from center
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const momentumX = (this.initialMomentum.x - 0.5) * width;
+    const momentumY = (this.initialMomentum.y - 0.5) * height;
+    const endX = centerX + momentumX;
+    const endY = centerY + momentumY;
+
+    // Arrow line
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // Arrow head
+    const angle = Math.atan2(momentumY, momentumX);
+    const arrowLength = 8;
+    ctx.fillStyle = '#3498db';
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+      endX - arrowLength * Math.cos(angle - Math.PI / 6),
+      endY - arrowLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      endX - arrowLength * Math.cos(angle + Math.PI / 6),
+      endY - arrowLength * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /**
+   * Update position display
+   */
+  updatePositionDisplay() {
+    if (this.ui.positionDisplay) {
+      // Convert normalized 0-1 to physical coordinates 0-domainSize
+      const domainSize = this.simulation.domainSize || 10.0;
+      const physX = this.initialPosition.x * domainSize;
+      const physY = this.initialPosition.y * domainSize;
+      this.ui.positionDisplay.textContent = `x: ${physX.toFixed(2)}, y: ${physY.toFixed(2)}`;
+    }
+  }
+
+  /**
+   * Update momentum display
+   */
+  updateMomentumDisplay() {
+    if (this.ui.momentumDisplay) {
+      // Convert normalized 0-1 to momentum values (-5 to +5)
+      const maxMomentum = 5.0;
+      const px = (this.initialMomentum.x - 0.5) * 2 * maxMomentum;
+      const py = (this.initialMomentum.y - 0.5) * 2 * maxMomentum;
+      this.ui.momentumDisplay.textContent = `px: ${px.toFixed(2)}, py: ${py.toFixed(2)}`;
     }
   }
 
