@@ -19,21 +19,23 @@
       <div class="left-panel controls-panel">
         <h2 class="panel-title">Initial Conditions</h2>
 
-        <div class="control-group">
-          <label class="control-label">Starting Position:</label>
-          <canvas id="position-selector" class="selector-canvas" width="120" height="120"
-                  aria-label="Select starting position"></canvas>
-          <div class="selector-info">
-            <span id="position-display" class="selector-value">x: 0.00, y: 0.00</span>
+        <div class="selector-pair">
+          <div class="selector-item">
+            <label class="control-label">Position</label>
+            <canvas id="position-selector" class="selector-canvas" width="100" height="100"
+                    aria-label="Select starting position"></canvas>
+            <div class="selector-info">
+              <span id="position-display" class="selector-value">x: 0.00, y: 0.00</span>
+            </div>
           </div>
-        </div>
 
-        <div class="control-group">
-          <label class="control-label">Starting Momentum:</label>
-          <canvas id="momentum-selector" class="selector-canvas" width="120" height="120"
-                  aria-label="Select starting momentum"></canvas>
-          <div class="selector-info">
-            <span id="momentum-display" class="selector-value">px: 0.00, py: 0.00</span>
+          <div class="selector-item">
+            <label class="control-label">Momentum</label>
+            <canvas id="momentum-selector" class="selector-canvas" width="100" height="100"
+                    aria-label="Select starting momentum"></canvas>
+            <div class="selector-info">
+              <span id="momentum-display" class="selector-value">px: 0.00, py: 0.00</span>
+            </div>
           </div>
         </div>
 
