@@ -50,9 +50,13 @@ export class Controller {
     this.measurementResultTimeout = null;
 
     // Initial condition state (normalized 0-1)
+    // These are the default initial conditions - simulation will be initialized from these values
+    // Momentum conversion: normalized value -> physical momentum = (value - 0.5) * 2 * maxMomentum
+    // where maxMomentum = 5.0, so (0.6 - 0.5) * 10 = 1.0, (0.56 - 0.5) * 10 = 0.6
+    // Width conversion: packetSize -> width = packetSize * dx * 3
     this.initialPosition = { x: 0.5, y: 0.5 }; // Center
-    this.initialMomentum = { x: 0.5, y: 0.5 }; // Zero momentum (center)
-    this.packetSize = 1.0; // Default packet size
+    this.initialMomentum = { x: 0.6, y: 0.56 }; // Physical momentum (1.0, 0.6)
+    this.packetSize = 2.56; // Physical width 0.6
 
     // Timing for stats
     this.elapsedTime = 0;

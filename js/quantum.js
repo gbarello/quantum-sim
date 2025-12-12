@@ -96,8 +96,8 @@ export class QuantumSimulation {
         // Time tracking
         this.time = 0;
 
-        // Initialize with default Gaussian wavepacket
-        this.initialize();
+        // Don't initialize here - let main.js initialize with values from controller
+        // this.initialize();
     }
 
     /**

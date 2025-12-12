@@ -28,10 +28,8 @@ const config = {
   // Boundary conditions
   boundaryCondition: 'periodic',
 
-  // Initial condition (Gaussian wavepacket)
-  initialWidth: 0.6,       // � for Gaussian (smaller = more concentrated = brighter)
-  initialPosition: null,   // Will be set to center: [N/2, N/2]
-  initialMomentum: [1.0, 0.6], // Increased drift for more visible motion
+  // Note: Initial conditions are now defined in the controller (controls.js)
+  // This ensures the panel and simulation stay in sync
 
   // Visualization
   showGrid: false,
@@ -86,7 +84,7 @@ class QuantumPlaygroundApp {
         console.log(`Stability check: OK (dt=${effectiveDt.toFixed(6)} < ${stabilityLimit.toFixed(6)})`);
       }
 
-      // Initialize quantum simulation
+      // Initialize quantum simulation (don't initialize wavefunction yet)
       console.log('Creating quantum simulation...');
       this.simulation = new QuantumSimulation(
         config.gridSize,
@@ -97,27 +95,6 @@ class QuantumPlaygroundApp {
         config.boundaryCondition,
         config.timeScale
       );
-
-      // Initialize with Gaussian wavepacket
-      const centerX = config.gridSize / 2;
-      const centerY = config.gridSize / 2;
-      const width = config.initialWidth;
-      const [px, py] = config.initialMomentum;
-
-      console.log(`Initializing Gaussian wavepacket at center (${centerX}, ${centerY})`);
-      console.log(`Width: ${width}, Initial momentum: (${px}, ${py})`);
-
-      this.simulation.initialize({
-        centerX: centerX,
-        centerY: centerY,
-        width: width,
-        momentumX: px,
-        momentumY: py
-      });
-
-      // Verify normalization
-      const totalProb = this.simulation.getTotalProbability();
-      console.log(`Initial total probability: ${totalProb.toFixed(8)}`);
 
       // Initialize visualizer
       console.log('Creating visualizer...');
@@ -160,6 +137,31 @@ class QuantumPlaygroundApp {
       // Initialize controller
       console.log('Creating controller...');
       this.controller = new Controller(this.simulation, this.visualizer, uiElements);
+
+      // Now initialize the simulation with values from the controller (single source of truth)
+      const centerX = this.controller.initialPosition.x * config.gridSize;
+      const centerY = this.controller.initialPosition.y * config.gridSize;
+      const maxMomentum = 5.0;
+      const momentumX = (this.controller.initialMomentum.x - 0.5) * 2 * maxMomentum;
+      const momentumY = (this.controller.initialMomentum.y - 0.5) * 2 * maxMomentum;
+      const width = this.controller.packetSize * dx * 3;
+
+      console.log(`Initializing simulation from controller initial conditions:`);
+      console.log(`  Position: (${centerX}, ${centerY})`);
+      console.log(`  Momentum: (${momentumX}, ${momentumY})`);
+      console.log(`  Width: ${width}`);
+
+      this.simulation.initialize({
+        centerX: centerX,
+        centerY: centerY,
+        width: width,
+        momentumX: momentumX,
+        momentumY: momentumY
+      });
+
+      // Verify normalization
+      const totalProb = this.simulation.getTotalProbability();
+      console.log(`Initial total probability: ${totalProb.toFixed(8)}`);
 
       // Set up grid toggle if it exists
       if (uiElements.gridToggle) {
