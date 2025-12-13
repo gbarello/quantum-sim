@@ -2,6 +2,20 @@
 
 This directory contains detailed technical documentation for the Quantum Particle Playground project.
 
+## Visualization Refactor Phases
+
+### `phases/` Directory
+Complete documentation for the 7-phase visualization refactor project:
+- **Phase 1**: Layout Logic Extraction - `CanvasLayout` class
+- **Phase 2**: Panel Base Class - `Panel` and `TooltipInfo`
+- **Phase 3**: Wavefunction Panel - Core rendering component
+- **Phase 4**: Potential Plot Panel - Side plot component
+- **Phase 5**: Overlay Panels - Grid, phase wheel, feedback, circle
+- **Phase 6**: Interaction Manager - Centralized event handling
+- **Phase 7**: VisualizerV2 Integration - Complete panel-based system
+
+See `phases/README.md` for detailed index and migration guide.
+
 ## Architecture Documentation
 
 ### `ROOT_ARCHITECTURE.md`
@@ -43,6 +57,27 @@ Build process and development workflow documentation:
 - Deployment process
 - Performance optimization notes
 
+### `VISUALIZER_V2_INTEGRATION.md`
+Integration guide for the new VisualizerV2 panel-based architecture:
+- Migration steps
+- API compatibility
+- Performance comparison
+- Troubleshooting
+
+### `VISUALIZER_V2_SUMMARY.md`
+Complete summary of the VisualizerV2 implementation:
+- Architecture details
+- Panel breakdown
+- Usage examples
+- Testing strategy
+
+### `INTERACTION_MANAGER_INTEGRATION.md`
+Integration guide for the InteractionManager:
+- Event handling architecture
+- Panel delegation
+- Callback implementation
+- Testing procedures
+
 ## Design Documents
 
 The `design/` subdirectory contains design documents and planning materials:
@@ -66,9 +101,10 @@ Documentation is organized by purpose:
 
 Start with these docs in order:
 1. `ROOT_ARCHITECTURE.md` - Understand the overall structure
-2. `js/README.md` - Learn about the main application code
-3. `lib/README.md` - Understand the mathematical foundations
-4. Component-specific docs - Deep dive into specific areas
+2. `phases/README.md` - Learn about the new visualization architecture
+3. `js/README.md` - Learn about the main application code
+4. `lib/README.md` - Understand the mathematical foundations
+5. Component-specific docs - Deep dive into specific areas
 
 ## For Contributors
 

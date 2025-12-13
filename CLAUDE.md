@@ -124,11 +124,15 @@ quantum-play/
 
 ---
 
-### 3. Visualization Layer (`js/visualization.js`)
+### 3. Visualization Layer
+
+The visualization system has two implementations:
+
+#### Original: `js/visualization.js` (Visualizer)
 
 **Purpose:** Renders the quantum state to an HTML5 Canvas.
 
-**Key Class:** `Visualizer`
+**Key Class:** `Visualizer` (727 lines, monolithic)
 
 **Visualization Modes:**
 - **Full (Complex):** Phase → Hue, Amplitude → Brightness (default)
@@ -146,6 +150,70 @@ quantum-play/
 - Potential well overlay rendering
 - Grid overlay
 - Coordinate axis indicators
+
+**Status:** Currently used in production (`index.html`)
+
+#### Refactored: `js/visualization/` (VisualizerV2)
+
+**Purpose:** Modular panel-based rendering architecture (December 2025 refactor)
+
+**Key Class:** `VisualizerV2` (348 lines, coordinator)
+
+**Architecture:**
+- **Panel-based design:** Each visual element is an independent panel
+- **Separation of concerns:** Layout, rendering, and interaction are decoupled
+- **Extensible:** Easy to add new visualization panels
+- **100% API compatible** with original Visualizer
+
+**Core Components:**
+- `VisualizerV2.js` - Main coordinator (manages panels)
+- `core/CanvasLayout.js` - Layout management and spatial calculations
+- `core/Panel.js` - Abstract base class for all panels
+- `core/InteractionManager.js` - Event handling (not yet integrated)
+- `core/TooltipInfo.js` - Tooltip data structure
+
+**Panel Types:**
+- `WavefunctionPanel` - Main quantum state visualization (390 lines)
+- `PotentialPlotPanel` - Side plot showing potential energy (298 lines)
+- `GridOverlayPanel` - Optional grid overlay (153 lines)
+- `PhaseWheelPanel` - Color reference legend (192 lines)
+- `MeasurementFeedbackPanel` - Measurement animation feedback (238 lines)
+- `MeasurementCirclePanel` - Hover preview circle (185 lines)
+
+**Benefits:**
+- 52% reduction in coordinator complexity
+- Focused, testable modules (~200-400 lines each)
+- Easy to extend with new visualizations
+- Pixel-perfect identical rendering to original
+- No performance degradation
+
+**Testing:**
+- 7 comprehensive test suites (38+ assertions)
+- 9 visual test pages
+- Side-by-side comparison tool
+- All tests passing
+
+**Documentation:**
+- `docs/VISUALIZER_V2_SUMMARY.md` - Complete architecture guide
+- `docs/VISUALIZER_V2_INTEGRATION.md` - Migration guide
+- `js/visualization/VISUALIZER_V2_QUICK_START.md` - Quick start
+- `js/visualization/README.md` - Developer guide
+- `docs/phases/` - 7 phase implementation summaries
+
+**Status:** Production-ready, available via `index-v2.html` or import aliasing
+
+**How to Use:**
+```javascript
+// Option 1: Use index-v2.html directly
+// Option 2: Import aliasing in main.js (zero code changes)
+import { VisualizerV2 as Visualizer } from './visualization/VisualizerV2.js';
+```
+
+**Migration Notes:**
+- Drop-in replacement for original Visualizer
+- Same public API methods
+- Compatible with existing controls.js
+- Easy rollback if needed
 
 ---
 
