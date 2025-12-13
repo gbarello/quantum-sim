@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PotentialPlotPanel Visual Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #4a9eff;
+        }
+
+        .canvas-wrapper {
+            display: inline-block;
+            background: #000;
+            border: 2px solid #444;
+            border-radius: 4px;
+            margin: 10px;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .label {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 6px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #3a8eef;
+        }
+
+        select {
+            padding: 6px 10px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: #4a9eff;
+            font-weight: 600;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 6px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            color: #4a9eff;
+            font-weight: 600;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        #testOutput {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            margin-bottom: 4px;
+        }
+
+        .log-success { color: #4ade80; }
+        .log-error { color: #ef4444; }
+        .log-info { color: #4a9eff; }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+            border: 1px solid #4a9eff;
+        }
+
+        .description {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #333;
+            border-radius: 6px;
+            border-left: 3px solid #4a9eff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PotentialPlotPanel Visual Verification Test</h1>
+
+        <div class="test-section">
+            <div class="description">
+                This test verifies the PotentialPlotPanel rendering. The panel extracts the potential
+                profile along the vertical centerline of the grid and displays it as a red line plot.
+                Hover over the plots to see potential values at different Y positions.
+            </div>
+
+            <h2>Controls</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Potential Type</label>
+                    <select id="potentialType">
+                        <option value="none">None</option>
+                        <option value="single" selected>Single Well</option>
+                        <option value="double">Double Well</option>
+                        <option value="sinusoid">Sinusoid</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Grid Size</label>
+                    <select id="gridSize">
+                        <option value="64">64×64</option>
+                        <option value="128" selected>128×128</option>
+                        <option value="256">256×256</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Actions</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="renderBtn">Render</button>
+                        <button id="runTestsBtn">Run Unit Tests</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Rendering Test - Different Potentials</h2>
+            <div class="comparison-grid">
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapper1">
+                        <canvas id="testCanvas1" width="120" height="512"></canvas>
+                    </div>
+                    <div class="label" id="label1">-</div>
+                </div>
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapper2">
+                        <canvas id="testCanvas2" width="120" height="512"></canvas>
+                    </div>
+                    <div class="label" id="label2">-</div>
+                </div>
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapper3">
+                        <canvas id="testCanvas3" width="120" height="512"></canvas>
+                    </div>
+                    <div class="label" id="label3">-</div>
+                </div>
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapper4">
+                        <canvas id="testCanvas4" width="120" height="512"></canvas>
+                    </div>
+                    <div class="label" id="label4">-</div>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Selected Potential</span>
+                    <span class="stat-value" id="potentialDisplay">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Grid Size</span>
+                    <span class="stat-value" id="gridSizeDisplay">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Render Time</span>
+                    <span class="stat-value" id="renderTime">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Potential Range</span>
+                    <span class="stat-value" id="rangeDisplay">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Comparison with Original Visualizer</h2>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapperPanel">
+                        <canvas id="panelCanvas" width="120" height="512"></canvas>
+                    </div>
+                    <div class="label">PotentialPlotPanel</div>
+                </div>
+                <div>
+                    <div class="canvas-wrapper" id="canvasWrapperOriginal">
+                        <canvas id="originalCanvas" width="612" height="512"></canvas>
+                    </div>
+                    <div class="label">Original Visualizer (Full View)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Unit Test Results</h2>
+            <div id="testOutput">
+                <div class="log-line log-info">Click "Run Unit Tests" to execute the test suite...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { PotentialPlotPanel } from '../js/visualization/panels/PotentialPlotPanel.js';
+        import { QuantumSimulation } from '../js/quantum.js';
+        import { Visualizer } from '../js/visualization.js';
+        import { runTests } from './test-potential-panel.js';
+
+        // UI Elements
+        const potentialTypeSelect = document.getElementById('potentialType');
+        const gridSizeSelect = document.getElementById('gridSize');
+        const renderBtn = document.getElementById('renderBtn');
+        const runTestsBtn = document.getElementById('runTestsBtn');
+        const potentialDisplay = document.getElementById('potentialDisplay');
+        const gridSizeDisplay = document.getElementById('gridSizeDisplay');
+        const renderTimeDisplay = document.getElementById('renderTime');
+        const rangeDisplay = document.getElementById('rangeDisplay');
+        const testOutput = document.getElementById('testOutput');
+
+        // Multiple test canvases
+        const testCanvases = [
+            document.getElementById('testCanvas1'),
+            document.getElementById('testCanvas2'),
+            document.getElementById('testCanvas3'),
+            document.getElementById('testCanvas4')
+        ];
+        const labels = [
+            document.getElementById('label1'),
+            document.getElementById('label2'),
+            document.getElementById('label3'),
+            document.getElementById('label4')
+        ];
+        const canvasWrappers = [
+            document.getElementById('canvasWrapper1'),
+            document.getElementById('canvasWrapper2'),
+            document.getElementById('canvasWrapper3'),
+            document.getElementById('canvasWrapper4')
+        ];
+
+        // Comparison canvases
+        const panelCanvas = document.getElementById('panelCanvas');
+        const originalCanvas = document.getElementById('originalCanvas');
+        const canvasWrapperPanel = document.getElementById('canvasWrapperPanel');
+        const canvasWrapperOriginal = document.getElementById('canvasWrapperOriginal');
+
+        // State
+        let panels = [];
+        let simulations = [];
+        let comparisonPanel = null;
+        let comparisonSimulation = null;
+        let comparisonVisualizer = null;
+
+        // Tooltip elements
+        const tooltips = [];
+        for (let i = 0; i < 4; i++) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.style.display = 'none';
+            canvasWrappers[i].appendChild(tooltip);
+            tooltips.push(tooltip);
+        }
+
+        const panelTooltip = document.createElement('div');
+        panelTooltip.className = 'tooltip';
+        panelTooltip.style.display = 'none';
+        canvasWrapperPanel.appendChild(panelTooltip);
+
+        // Potential types for display (using actual quantum.js types)
+        const potentialTypes = ['single', 'double', 'sinusoid', 'none'];
+
+        // Initialize
+        function init() {
+            const gridSize = parseInt(gridSizeSelect.value);
+
+            // Create simulations and panels for each potential type
+            panels = [];
+            simulations = [];
+
+            for (let i = 0; i < 4; i++) {
+                const potType = potentialTypes[i];
+
+                // Create simulation
+                const simulation = new QuantumSimulation({
+                    gridSize: gridSize,
+                    domainSize: 10.0,
+                    dt: 0.01
+                });
+
+                // Set potential type
+                simulation.setPotentialType(potType);
+                // The potential is automatically created by setPotentialType in quantum.js
+
+                simulations.push(simulation);
+
+                // Create panel
+                const panel = new PotentialPlotPanel({
+                    x: 0,
+                    y: 0,
+                    width: testCanvases[i].width,
+                    height: testCanvases[i].height
+                });
+
+                panels.push(panel);
+
+                // Update label
+                labels[i].textContent = potType.charAt(0).toUpperCase() + potType.slice(1);
+            }
+
+            // Initialize comparison
+            initComparison();
+
+            // Update displays
+            gridSizeDisplay.textContent = `${gridSize}×${gridSize}`;
+        }
+
+        // Initialize comparison between panel and original visualizer
+        function initComparison() {
+            const gridSize = parseInt(gridSizeSelect.value);
+            const potType = potentialTypeSelect.value;
+
+            // Create simulation
+            comparisonSimulation = new QuantumSimulation({
+                gridSize: gridSize,
+                domainSize: 10.0,
+                dt: 0.01
+            });
+
+            // Set potential
+            comparisonSimulation.setPotentialType(potType);
+            // The potential is automatically created by setPotentialType in quantum.js
+
+            // Create panel
+            comparisonPanel = new PotentialPlotPanel({
+                x: 0,
+                y: 0,
+                width: panelCanvas.width,
+                height: panelCanvas.height
+            });
+
+            // Create original visualizer
+            comparisonVisualizer = new Visualizer(
+                originalCanvas,
+                comparisonSimulation,
+                { visualizationMode: 'full' }
+            );
+        }
+
+        // Render all panels
+        function render() {
+            if (panels.length === 0) {
+                init();
+            }
+
+            const startTime = performance.now();
+
+            // Render all 4 potential types
+            for (let i = 0; i < 4; i++) {
+                const ctx = testCanvases[i].getContext('2d', { alpha: false });
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, testCanvases[i].width, testCanvases[i].height);
+
+                panels[i].render(ctx, simulations[i], performance.now());
+            }
+
+            const endTime = performance.now();
+            const renderTime = (endTime - startTime).toFixed(2);
+            renderTimeDisplay.textContent = `${renderTime} ms`;
+
+            // Render comparison
+            renderComparison();
+        }
+
+        // Render comparison
+        function renderComparison() {
+            if (!comparisonPanel || !comparisonSimulation) {
+                initComparison();
+            }
+
+            // Render panel version
+            const panelCtx = panelCanvas.getContext('2d', { alpha: false });
+            panelCtx.fillStyle = '#000';
+            panelCtx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
+            comparisonPanel.render(panelCtx, comparisonSimulation, performance.now());
+
+            // Update potential display
+            potentialDisplay.textContent = comparisonSimulation.potentialType.charAt(0).toUpperCase() +
+                                          comparisonSimulation.potentialType.slice(1);
+
+            // Show range if available
+            if (comparisonPanel._cachedRange) {
+                rangeDisplay.textContent = `[${comparisonPanel._cachedRange.min.toFixed(2)}, ${comparisonPanel._cachedRange.max.toFixed(2)}]`;
+            } else {
+                rangeDisplay.textContent = '-';
+            }
+
+            // Render original visualizer
+            comparisonVisualizer.resize(originalCanvas.width, originalCanvas.height);
+            comparisonVisualizer.render();
+        }
+
+        // Event Listeners
+        potentialTypeSelect.addEventListener('change', () => {
+            initComparison();
+            renderComparison();
+        });
+
+        gridSizeSelect.addEventListener('change', () => {
+            init();
+            render();
+        });
+
+        renderBtn.addEventListener('click', () => {
+            render();
+        });
+
+        runTestsBtn.addEventListener('click', () => {
+            // Redirect console to our output div
+            const originalLog = console.log;
+            const originalError = console.error;
+            const logs = [];
+
+            console.log = function(...args) {
+                const message = args.join(' ');
+                logs.push({ type: 'info', message });
+                originalLog.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                const message = args.join(' ');
+                logs.push({ type: 'error', message });
+                originalError.apply(console, args);
+            };
+
+            // Run tests
+            try {
+                const success = runTests();
+
+                // Restore console
+                console.log = originalLog;
+                console.error = originalError;
+
+                // Display results
+                testOutput.innerHTML = logs.map(({ type, message }) => {
+                    let className = 'log-info';
+                    if (type === 'error') className = 'log-error';
+                    if (message.includes('✓')) className = 'log-success';
+                    if (message.includes('✗')) className = 'log-error';
+
+                    return `<div class="log-line ${className}">${escapeHtml(message)}</div>`;
+                }).join('');
+
+            } catch (error) {
+                console.log = originalLog;
+                console.error = originalError;
+                testOutput.innerHTML = `<div class="log-line log-error">Test execution failed: ${escapeHtml(error.message)}</div>`;
+            }
+        });
+
+        // Utility
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Mouse hover tooltips for all panels
+        for (let i = 0; i < 4; i++) {
+            testCanvases[i].addEventListener('mousemove', (e) => {
+                const rect = testCanvases[i].getBoundingClientRect();
+                const canvasX = e.clientX - rect.left;
+                const canvasY = e.clientY - rect.top;
+
+                const tooltip = panels[i].handleMouseMove(canvasX, canvasY, simulations[i]);
+                if (tooltip) {
+                    tooltips[i].textContent = `V = ${tooltip.data.V}`;
+                    tooltips[i].style.display = 'block';
+                    tooltips[i].style.left = (canvasX + 10) + 'px';
+                    tooltips[i].style.top = (canvasY + 10) + 'px';
+                } else {
+                    tooltips[i].style.display = 'none';
+                }
+            });
+
+            testCanvases[i].addEventListener('mouseleave', () => {
+                tooltips[i].style.display = 'none';
+            });
+        }
+
+        // Tooltip for comparison panel
+        panelCanvas.addEventListener('mousemove', (e) => {
+            if (!comparisonPanel || !comparisonSimulation) return;
+
+            const rect = panelCanvas.getBoundingClientRect();
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+
+            const tooltip = comparisonPanel.handleMouseMove(canvasX, canvasY, comparisonSimulation);
+            if (tooltip) {
+                panelTooltip.textContent = `V = ${tooltip.data.V}`;
+                panelTooltip.style.display = 'block';
+                panelTooltip.style.left = (canvasX + 10) + 'px';
+                panelTooltip.style.top = (canvasY + 10) + 'px';
+            } else {
+                panelTooltip.style.display = 'none';
+            }
+        });
+
+        panelCanvas.addEventListener('mouseleave', () => {
+            panelTooltip.style.display = 'none';
+        });
+
+        // Initial render
+        init();
+        render();
+    </script>
+</body>
+</html>

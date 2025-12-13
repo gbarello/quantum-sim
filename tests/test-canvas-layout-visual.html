@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CanvasLayout Visual Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .canvas-container {
+      margin: 20px 0;
+      border: 2px solid #333;
+      display: inline-block;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      background-color: #1a1a1a;
+    }
+
+    .info {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 5px;
+      max-width: 800px;
+    }
+
+    .info h3 {
+      margin-top: 0;
+    }
+
+    .layout-box {
+      position: absolute;
+      border: 2px dashed yellow;
+      pointer-events: none;
+    }
+
+    .label {
+      position: absolute;
+      background-color: rgba(255, 255, 0, 0.8);
+      color: black;
+      padding: 2px 5px;
+      font-size: 12px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    .controls {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #fff;
+      border-radius: 5px;
+      max-width: 800px;
+    }
+
+    button {
+      padding: 8px 15px;
+      margin: 5px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .measurements {
+      font-family: monospace;
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-left: 3px solid #4CAF50;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>CanvasLayout Visual Test</h1>
+
+  <div class="info">
+    <h3>Purpose</h3>
+    <p>This test visually demonstrates the CanvasLayout calculations and validates they match
+       the current logic in visualization.js. Panel boundaries are drawn with dashed lines.</p>
+  </div>
+
+  <div class="controls">
+    <h3>Configuration</h3>
+    <label>
+      <input type="checkbox" id="showPlot" checked>
+      Show Potential Plot
+    </label>
+    <br>
+    <label>
+      <input type="checkbox" id="showPhaseWheel" checked>
+      Show Phase Wheel
+    </label>
+    <br><br>
+    <button onclick="updateLayout()">Update Layout</button>
+    <button onclick="testHitDetection()">Test Hit Detection</button>
+  </div>
+
+  <div class="canvas-container" id="container">
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="info">
+    <h3>Layout Measurements</h3>
+    <div class="measurements" id="measurements"></div>
+  </div>
+
+  <div class="info">
+    <h3>Hit Testing</h3>
+    <p>Click on the canvas to test hit detection. The result will show which panel was clicked.</p>
+    <div class="measurements" id="hitResult"></div>
+  </div>
+
+  <script type="module">
+    import { CanvasLayout } from '../js/visualization/core/CanvasLayout.js';
+
+    const canvas = document.getElementById('testCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('container');
+    let layout;
+
+    function clearOverlays() {
+      // Remove existing overlay divs
+      const overlays = container.querySelectorAll('.layout-box, .label');
+      overlays.forEach(el => el.remove());
+    }
+
+    function drawLayout() {
+      // Clear canvas
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Get configuration
+      const showPlot = document.getElementById('showPlot').checked;
+      const showPhaseWheel = document.getElementById('showPhaseWheel').checked;
+
+      // Create layout
+      layout = new CanvasLayout(canvas.width, canvas.height, {
+        showPlot,
+        showPhaseWheel,
+        phaseWheelRadius: 40,
+        phaseWheelMargin: 20
+      });
+
+      const panels = layout.calculateLayout();
+
+      // Clear previous overlays
+      clearOverlays();
+
+      // Draw wavefunction panel
+      const wave = panels.wavefunction;
+      ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(wave.x, wave.y, wave.width, wave.height);
+      ctx.setLineDash([]);
+
+      // Add label
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+      ctx.font = '14px Arial';
+      ctx.fillText('Wavefunction Grid', wave.x + 10, wave.y + 20);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.font = '12px monospace';
+      ctx.fillText(`${wave.width}×${wave.height}px`, wave.x + 10, wave.y + 40);
+
+      // Draw potential plot if enabled
+      if (panels.potentialPlot) {
+        const plot = panels.potentialPlot;
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(plot.x, plot.y, plot.width, plot.height);
+        ctx.setLineDash([]);
+
+        // Add label
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        ctx.font = '14px Arial';
+        ctx.fillText('Potential Plot', plot.x + 10, plot.y + 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = '12px monospace';
+        ctx.fillText(`${plot.width}×${plot.height}px`, plot.x + 10, plot.y + 40);
+
+        // Draw sample plot data
+        ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const centerX = plot.x + plot.width / 2;
+        for (let y = 0; y < plot.height; y += 2) {
+          const offset = 30 * Math.sin(y * 0.02);
+          const x = centerX + offset;
+          if (y === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Draw phase wheel if enabled
+      if (panels.phaseWheel) {
+        const wheel = panels.phaseWheel;
+        const centerX = wheel.x + wheel.width / 2;
+        const centerY = wheel.y + wheel.height / 2;
+        const radius = wheel.width / 2;
+
+        // Draw colored wheel
+        for (let angle = 0; angle < 360; angle += 10) {
+          const startAngle = (angle - 90) * Math.PI / 180;
+          const endAngle = (angle + 10 - 90) * Math.PI / 180;
+
+          const hue = angle;
+          ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Draw border
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Add label
+        ctx.fillStyle = 'yellow';
+        ctx.font = '12px Arial';
+        ctx.fillText('Phase', centerX - 15, wheel.y - 5);
+      }
+
+      // Update measurements display
+      displayMeasurements(panels);
+    }
+
+    function displayMeasurements(panels) {
+      const measurements = document.getElementById('measurements');
+      let html = '<strong>Panel Bounds:</strong><br><br>';
+
+      html += '<strong>Wavefunction Grid:</strong><br>';
+      html += `  x: ${panels.wavefunction.x}, y: ${panels.wavefunction.y}<br>`;
+      html += `  width: ${panels.wavefunction.width}, height: ${panels.wavefunction.height}<br>`;
+      html += `  aspect ratio: ${(panels.wavefunction.width / panels.wavefunction.height).toFixed(2)}<br><br>`;
+
+      if (panels.potentialPlot) {
+        html += '<strong>Potential Plot:</strong><br>';
+        html += `  x: ${panels.potentialPlot.x}, y: ${panels.potentialPlot.y}<br>`;
+        html += `  width: ${panels.potentialPlot.width}, height: ${panels.potentialPlot.height}<br><br>`;
+      } else {
+        html += '<strong>Potential Plot:</strong> disabled<br><br>';
+      }
+
+      if (panels.phaseWheel) {
+        html += '<strong>Phase Wheel:</strong><br>';
+        html += `  x: ${panels.phaseWheel.x}, y: ${panels.phaseWheel.y}<br>`;
+        html += `  width: ${panels.phaseWheel.width}, height: ${panels.phaseWheel.height}<br><br>`;
+      } else {
+        html += '<strong>Phase Wheel:</strong> disabled<br><br>';
+      }
+
+      html += '<strong>Canvas Dimensions:</strong><br>';
+      html += `  width: ${canvas.width}, height: ${canvas.height}`;
+
+      measurements.innerHTML = html;
+    }
+
+    window.updateLayout = function() {
+      drawLayout();
+    };
+
+    window.testHitDetection = function() {
+      const hitResult = document.getElementById('hitResult');
+      hitResult.innerHTML = 'Click on the canvas to test hit detection...';
+    };
+
+    // Handle canvas clicks for hit testing
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const hit = layout.hitTest(x, y);
+
+      const hitResult = document.getElementById('hitResult');
+      if (hit) {
+        hitResult.innerHTML = `
+          <strong>HIT!</strong><br>
+          Click position: (${Math.round(x)}, ${Math.round(y)})<br>
+          Panel: <strong>${hit.panel}</strong><br>
+          Bounds: x=${hit.bounds.x}, y=${hit.bounds.y},
+                 w=${hit.bounds.width}, h=${hit.bounds.height}
+        `;
+
+        // Flash the clicked position
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        setTimeout(() => drawLayout(), 500);
+      } else {
+        hitResult.innerHTML = `
+          <strong>MISS</strong><br>
+          Click position: (${Math.round(x)}, ${Math.round(y)})<br>
+          No panel at this location
+        `;
+      }
+    });
+
+    // Initial draw
+    drawLayout();
+  </script>
+</body>
+</html>

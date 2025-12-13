@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CanvasLayout Tests</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+      background-color: #1a1a1a;
+      color: #00ff00;
+    }
+
+    h1 {
+      color: #00ff00;
+      border-bottom: 2px solid #00ff00;
+      padding-bottom: 10px;
+    }
+
+    #output {
+      background-color: #000;
+      border: 2px solid #00ff00;
+      padding: 20px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .pass {
+      color: #00ff00;
+    }
+
+    .fail {
+      color: #ff0000;
+    }
+
+    .info {
+      color: #00ffff;
+    }
+
+    button {
+      background-color: #00ff00;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      font-family: 'Courier New', monospace;
+    }
+
+    button:hover {
+      background-color: #00cc00;
+    }
+  </style>
+</head>
+<body>
+  <h1>CanvasLayout Test Suite</h1>
+  <button onclick="runTests()">Run Tests</button>
+  <div id="output"></div>
+
+  <script type="module">
+    import { CanvasLayout } from '../js/visualization/core/CanvasLayout.js';
+
+    const outputDiv = document.getElementById('output');
+
+    // Override console methods to capture output
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalAssert = console.assert;
+
+    let testOutput = '';
+    let assertionsFailed = 0;
+
+    console.log = function(...args) {
+      const message = args.join(' ');
+      testOutput += message + '\n';
+      outputDiv.innerHTML = testOutput;
+      originalLog.apply(console, args);
+    };
+
+    console.error = function(...args) {
+      const message = args.join(' ');
+      testOutput += '<span class="fail">' + message + '</span>\n';
+      outputDiv.innerHTML = testOutput;
+      originalError.apply(console, args);
+    };
+
+    console.assert = function(condition, ...args) {
+      if (!condition) {
+        assertionsFailed++;
+        const message = args.join(' ');
+        testOutput += '<span class="fail">✗ ASSERTION FAILED: ' + message + '</span>\n';
+        outputDiv.innerHTML = testOutput;
+        throw new Error('Assertion failed: ' + message);
+      }
+    };
+
+    window.runTests = function() {
+      testOutput = '';
+      assertionsFailed = 0;
+      outputDiv.innerHTML = '<span class="info">Running tests...</span>\n';
+
+      try {
+        testBasicLayout();
+        testLayoutWithPlot();
+        testLayoutWithPhaseWheel();
+        testHitTesting();
+        testDimensionUpdate();
+        testConfigUpdate();
+        testConvenienceMethods();
+        testEdgeCases();
+
+        if (assertionsFailed === 0) {
+          testOutput += '\n<span class="pass">═══════════════════════════════</span>\n';
+          testOutput += '<span class="pass">  ALL TESTS PASSED! ✓</span>\n';
+          testOutput += '<span class="pass">═══════════════════════════════</span>\n';
+        } else {
+          testOutput += '\n<span class="fail">Tests completed with ' + assertionsFailed + ' failures</span>\n';
+        }
+      } catch (error) {
+        testOutput += '\n<span class="fail">Test suite failed: ' + error.message + '</span>\n';
+      }
+
+      outputDiv.innerHTML = testOutput;
+    };
+
+    // Test functions (same as test-canvas-layout.js)
+    function testBasicLayout() {
+      console.log('Test: Basic layout (no plot, no phase wheel)');
+
+      const layout = new CanvasLayout(800, 600, {
+        showPlot: false,
+        showPhaseWheel: false
+      });
+
+      const result = layout.calculateLayout();
+
+      console.assert(result.wavefunction.x === 0, 'Wavefunction x should be 0');
+      console.assert(result.wavefunction.y === 0, 'Wavefunction y should be 0');
+      console.assert(result.wavefunction.width === 600, 'Wavefunction width should equal canvas height');
+      console.assert(result.wavefunction.height === 600, 'Wavefunction height should equal canvas height');
+      console.assert(result.potentialPlot === null, 'Plot should be null when disabled');
+      console.assert(result.phaseWheel === null, 'Phase wheel should be null when disabled');
+
+      console.log('✓ Basic layout test passed\n');
+    }
+
+    function testLayoutWithPlot() {
+      console.log('Test: Layout with potential plot');
+
+      const layout = new CanvasLayout(800, 600, {
+        showPlot: true,
+        showPhaseWheel: false
+      });
+
+      const result = layout.calculateLayout();
+
+      console.assert(result.wavefunction.width === 600, 'Wavefunction should be square');
+      console.assert(result.wavefunction.height === 600, 'Wavefunction should be square');
+      console.assert(result.potentialPlot !== null, 'Plot should exist');
+      console.assert(result.potentialPlot.x === 600, 'Plot should start after wavefunction');
+      console.assert(result.potentialPlot.y === 0, 'Plot should start at top');
+      console.assert(result.potentialPlot.width === 200, 'Plot width should be remaining space');
+      console.assert(result.potentialPlot.height === 600, 'Plot height should match canvas');
+
+      console.log('✓ Layout with plot test passed\n');
+    }
+
+    function testLayoutWithPhaseWheel() {
+      console.log('Test: Layout with phase wheel');
+
+      const layout = new CanvasLayout(800, 600, {
+        showPlot: false,
+        showPhaseWheel: true,
+        phaseWheelRadius: 40,
+        phaseWheelMargin: 20
+      });
+
+      const result = layout.calculateLayout();
+
+      console.assert(result.phaseWheel !== null, 'Phase wheel should exist');
+      console.assert(result.phaseWheel.x === 800 - 80 - 20, 'Phase wheel X position');
+      console.assert(result.phaseWheel.y === 20, 'Phase wheel Y position');
+      console.assert(result.phaseWheel.width === 80, 'Phase wheel width');
+      console.assert(result.phaseWheel.height === 80, 'Phase wheel height');
+
+      console.log('✓ Layout with phase wheel test passed\n');
+    }
+
+    function testHitTesting() {
+      console.log('Test: Hit testing');
+
+      const layout = new CanvasLayout(800, 600, {
+        showPlot: true,
+        showPhaseWheel: true
+      });
+
+      let hit = layout.hitTest(100, 100);
+      console.assert(hit !== null, 'Should hit a panel');
+      console.assert(hit.panel === 'wavefunction', 'Should hit wavefunction');
+
+      hit = layout.hitTest(650, 100);
+      console.assert(hit !== null, 'Should hit a panel');
+      console.assert(hit.panel === 'potentialPlot', 'Should hit plot');
+
+      hit = layout.hitTest(720, 40);
+      console.assert(hit !== null, 'Should hit a panel');
+      console.assert(hit.panel === 'phaseWheel', 'Should hit phase wheel');
+
+      hit = layout.hitTest(900, 100);
+      console.assert(hit === null, 'Should miss all panels');
+
+      console.log('✓ Hit testing test passed\n');
+    }
+
+    function testDimensionUpdate() {
+      console.log('Test: Dimension updates');
+
+      const layout = new CanvasLayout(800, 600, { showPlot: true });
+      layout.updateDimensions(1000, 800);
+
+      const result = layout.calculateLayout();
+
+      console.assert(result.wavefunction.width === 800, 'Updated wavefunction width');
+      console.assert(result.wavefunction.height === 800, 'Updated wavefunction height');
+      console.assert(result.potentialPlot.width === 200, 'Updated plot width');
+
+      console.log('✓ Dimension update test passed\n');
+    }
+
+    function testConfigUpdate() {
+      console.log('Test: Config updates');
+
+      const layout = new CanvasLayout(800, 600, { showPlot: false });
+
+      let result = layout.calculateLayout();
+      console.assert(result.potentialPlot === null, 'Plot initially disabled');
+
+      layout.updateConfig({ showPlot: true });
+      result = layout.calculateLayout();
+      console.assert(result.potentialPlot !== null, 'Plot now enabled');
+
+      console.log('✓ Config update test passed\n');
+    }
+
+    function testConvenienceMethods() {
+      console.log('Test: Convenience methods');
+
+      const layout = new CanvasLayout(800, 600, {
+        showPlot: true,
+        showPhaseWheel: true
+      });
+
+      const waveBounds = layout.getWavefunctionBounds();
+      console.assert(waveBounds.width === 600, 'getWavefunctionBounds works');
+
+      const plotBounds = layout.getPotentialPlotBounds();
+      console.assert(plotBounds !== null, 'getPotentialPlotBounds works');
+      console.assert(plotBounds.width === 200, 'Plot bounds correct');
+
+      const wheelBounds = layout.getPhaseWheelBounds();
+      console.assert(wheelBounds !== null, 'getPhaseWheelBounds works');
+
+      layout.updateConfig({ showPlot: false, showPhaseWheel: false });
+      console.assert(layout.getPotentialPlotBounds() === null, 'Returns null when disabled');
+      console.assert(layout.getPhaseWheelBounds() === null, 'Returns null when disabled');
+
+      console.log('✓ Convenience methods test passed\n');
+    }
+
+    function testEdgeCases() {
+      console.log('Test: Edge cases');
+
+      const smallLayout = new CanvasLayout(100, 100, { showPlot: true });
+      const result = smallLayout.calculateLayout();
+      console.assert(result.wavefunction.width === 100, 'Handles small canvas');
+      console.assert(result.potentialPlot.width === 0, 'Plot width is 0 when no space');
+
+      const squareLayout = new CanvasLayout(600, 600, { showPlot: false });
+      const squareResult = squareLayout.calculateLayout();
+      console.assert(squareResult.wavefunction.width === 600, 'Handles square canvas');
+
+      console.log('✓ Edge cases test passed\n');
+    }
+
+    // Auto-run tests on load
+    window.addEventListener('load', () => {
+      setTimeout(() => runTests(), 100);
+    });
+  </script>
+</body>
+</html>

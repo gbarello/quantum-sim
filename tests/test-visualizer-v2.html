@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisualizerV2 Unit Tests</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Monaco', 'Consolas', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #4fc3f7;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .description {
+      color: #888;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .controls {
+      background: #252526;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #4fc3f7;
+      border: none;
+      border-radius: 4px;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    button:hover {
+      background: #6dd5ff;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .summary {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .summary-item {
+      text-align: center;
+    }
+
+    .summary-label {
+      color: #888;
+      font-size: 12px;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .summary-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .summary-value.passed {
+      color: #4caf50;
+    }
+
+    .summary-value.failed {
+      color: #f44336;
+    }
+
+    .summary-value.total {
+      color: #4fc3f7;
+    }
+
+    .test-output {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 13px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .test-output pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .test-line {
+      padding: 4px 0;
+    }
+
+    .test-line.pass {
+      color: #4caf50;
+    }
+
+    .test-line.fail {
+      color: #f44336;
+    }
+
+    .test-line.section {
+      color: #4fc3f7;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .test-line.info {
+      color: #888;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .status.success {
+      background: #2e7d32;
+      color: #fff;
+    }
+
+    .status.failure {
+      background: #c62828;
+      color: #fff;
+    }
+
+    .status.running {
+      background: #f57c00;
+      color: #fff;
+    }
+
+    .progress {
+      width: 100%;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #4fc3f7;
+      transition: width 0.3s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .running .progress-bar {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VisualizerV2 Unit Tests</h1>
+    <p class="description">
+      Comprehensive test suite for the new panel-based visualizer
+    </p>
+
+    <div class="controls">
+      <button id="btnRun">Run All Tests</button>
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-item">
+        <span class="summary-label">Passed</span>
+        <span class="summary-value passed" id="passedCount">0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Failed</span>
+        <span class="summary-value failed" id="failedCount">0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Total</span>
+        <span class="summary-value total" id="totalCount">0</span>
+      </div>
+    </div>
+
+    <div class="test-output" id="output">
+      <pre id="outputPre">Click "Run All Tests" to begin...</pre>
+    </div>
+
+    <div id="status" class="status" style="display: none;"></div>
+  </div>
+
+  <script type="module">
+    import { VisualizerV2Tests } from './test-visualizer-v2.js';
+
+    const btnRun = document.getElementById('btnRun');
+    const outputPre = document.getElementById('outputPre');
+    const passedCount = document.getElementById('passedCount');
+    const failedCount = document.getElementById('failedCount');
+    const totalCount = document.getElementById('totalCount');
+    const statusDiv = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+
+    let outputLines = [];
+
+    // Override console.log to capture output
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      const message = args.join(' ');
+
+      let lineClass = 'info';
+      if (message.startsWith('✓')) {
+        lineClass = 'pass';
+      } else if (message.startsWith('✗')) {
+        lineClass = 'fail';
+      } else if (message.startsWith('---') || message.startsWith('===')) {
+        lineClass = 'section';
+      }
+
+      outputLines.push(`<div class="test-line ${lineClass}">${escapeHtml(message)}</div>`);
+      updateOutput();
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      const message = args.join(' ');
+      outputLines.push(`<div class="test-line fail">${escapeHtml(message)}</div>`);
+      updateOutput();
+    };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function updateOutput() {
+      outputPre.innerHTML = outputLines.join('');
+      // Auto-scroll to bottom
+      outputPre.parentElement.scrollTop = outputPre.parentElement.scrollHeight;
+    }
+
+    async function runTests() {
+      // Reset
+      outputLines = [];
+      btnRun.disabled = true;
+      statusDiv.style.display = 'none';
+      progressBar.style.width = '0%';
+      progressBar.parentElement.classList.add('running');
+
+      // Show running status
+      statusDiv.textContent = 'Running tests...';
+      statusDiv.className = 'status running';
+      statusDiv.style.display = 'block';
+
+      // Animate progress
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 2;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = `${progress}%`;
+      }, 50);
+
+      try {
+        // Run tests
+        const tests = new VisualizerV2Tests();
+        const success = await tests.runAll();
+
+        // Complete progress
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressBar.parentElement.classList.remove('running');
+
+        // Update summary
+        passedCount.textContent = tests.passed;
+        failedCount.textContent = tests.failed;
+        totalCount.textContent = tests.passed + tests.failed;
+
+        // Update status
+        if (success) {
+          statusDiv.textContent = `✓ All ${tests.passed} tests passed!`;
+          statusDiv.className = 'status success';
+        } else {
+          statusDiv.textContent = `✗ ${tests.failed} test(s) failed`;
+          statusDiv.className = 'status failure';
+        }
+
+      } catch (error) {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressBar.parentElement.classList.remove('running');
+
+        console.error('Test suite error:', error);
+        statusDiv.textContent = `✗ Test suite crashed: ${error.message}`;
+        statusDiv.className = 'status failure';
+      } finally {
+        btnRun.disabled = false;
+      }
+    }
+
+    btnRun.addEventListener('click', runTests);
+
+    // Auto-run on load
+    console.log('VisualizerV2 Test Suite Ready');
+    console.log('Press "Run All Tests" to begin\n');
+  </script>
+</body>
+</html>
