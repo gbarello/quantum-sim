@@ -92,13 +92,26 @@ export class WavefunctionPanel extends Panel {
         const gridSize = simulation.gridSize;
         const psi = simulation.psi;
 
-        // Create ImageData for this panel's dimensions
-        // Note: ImageData size must match the actual pixel dimensions on canvas
-        const imageData = ctx.createImageData(this.bounds.width, this.bounds.height);
+        // IMPORTANT: ImageData and putImageData work in PHYSICAL pixels (ignoring canvas transforms).
+        // We need to account for the device pixel ratio that was applied to the context.
+        // The bounds are in logical pixels, but ImageData needs physical pixels.
+
+        // Get the current transform to extract the DPR scaling
+        const transform = ctx.getTransform();
+        const dpr = transform.a; // Assumes uniform scaling (a == d)
+
+        // Calculate physical pixel dimensions
+        const physicalWidth = Math.round(this.bounds.width * dpr);
+        const physicalHeight = Math.round(this.bounds.height * dpr);
+        const physicalX = Math.round(this.bounds.x * dpr);
+        const physicalY = Math.round(this.bounds.y * dpr);
+
+        // Create ImageData for this panel's PHYSICAL dimensions
+        const imageData = ctx.createImageData(physicalWidth, physicalHeight);
         const data = imageData.data;
 
-        // Calculate cell size - must be square since panel is square and grid is square
-        const cellSize = this.bounds.width / gridSize;
+        // Calculate cell size in physical pixels
+        const cellSize = physicalWidth / gridSize;
 
         // Render each grid cell
         for (let gy = 0; gy < gridSize; gy++) {
@@ -112,7 +125,7 @@ export class WavefunctionPanel extends Panel {
                 // Convert complex value to RGB color
                 const [r, g, b] = this.complexToColor(psiValue);
 
-                // Calculate pixel range for this grid cell
+                // Calculate pixel range for this grid cell (in physical pixels)
                 const startX = Math.floor(gx * cellSize);
                 const startY = Math.floor(gy * cellSize);
                 const endX = Math.floor((gx + 1) * cellSize);
@@ -121,9 +134,9 @@ export class WavefunctionPanel extends Panel {
                 // Fill all pixels in this grid cell with the computed color
                 for (let py = startY; py < endY; py++) {
                     for (let px = startX; px < endX; px++) {
-                        // Calculate pixel index in ImageData
+                        // Calculate pixel index in ImageData (using physical width as stride)
                         // ImageData is row-major: [r, g, b, a, r, g, b, a, ...]
-                        const pixelIdx = (py * this.bounds.width + px) * 4;
+                        const pixelIdx = (py * physicalWidth + px) * 4;
                         data[pixelIdx] = r;
                         data[pixelIdx + 1] = g;
                         data[pixelIdx + 2] = b;
@@ -133,8 +146,9 @@ export class WavefunctionPanel extends Panel {
             }
         }
 
-        // Put the ImageData on the canvas at the panel's position
-        ctx.putImageData(imageData, this.bounds.x, this.bounds.y);
+        // Put the ImageData on the canvas at the panel's PHYSICAL position
+        // Note: putImageData ignores the current transform and writes directly to canvas pixels
+        ctx.putImageData(imageData, physicalX, physicalY);
     }
 
     /**

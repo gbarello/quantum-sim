@@ -260,6 +260,13 @@ export class QuantumSimulation {
         const N = this.gridSize;
         const sigma = width;
 
+        // Debug logging
+        console.log('QuantumSimulation.initialize() called with:');
+        console.log('  centerX (grid):', centerX, ', centerY (grid):', centerY);
+        console.log('  width (physical):', width, ', sigma:', sigma);
+        console.log('  momentumX:', momentumX, ', momentumY:', momentumY);
+        console.log('  dx:', this.dx, ', gridSize:', N);
+
         // Build Gaussian wavepacket
         for (let iy = 0; iy < N; iy++) {
             for (let ix = 0; ix < N; ix++) {
@@ -287,8 +294,23 @@ export class QuantumSimulation {
             }
         }
 
+        // Debug: Check wavefunction before normalization
+        const centerVal = this.psi.get(Math.floor(centerX), Math.floor(centerY));
+        const centerAmp = Math.sqrt(centerVal.re * centerVal.re + centerVal.im * centerVal.im);
+        const normBefore = Math.sqrt(this.psi.sumAbs2());
+        console.log('  Before normalization:');
+        console.log('    Center amplitude:', centerAmp.toFixed(6));
+        console.log('    Norm:', normBefore.toFixed(6));
+
         // Normalize to unit total probability
         this.renormalize();
+
+        // Debug: Check wavefunction after normalization
+        const normAfter = Math.sqrt(this.psi.sumAbs2());
+        const totalProb = this.getTotalProbability();
+        console.log('  After normalization:');
+        console.log('    Norm:', normAfter.toFixed(6));
+        console.log('    Total probability:', totalProb.toFixed(8));
 
         // Reset time
         this.time = 0;

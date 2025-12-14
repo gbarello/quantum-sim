@@ -43,14 +43,29 @@ class QuantumPlaygroundApp {
     console.log('Initializing Quantum Playground with VisualizerV2...');
 
     // Create canvas
-    this.canvas = document.getElementById('quantumCanvas');
+    this.canvas = document.getElementById('quantum-canvas');
     if (!this.canvas) {
       console.error('Canvas element not found');
       return;
     }
 
+    // Debug logging
+    console.log('✓ Canvas found:', this.canvas);
+    console.log('  Canvas dimensions (physical):', this.canvas.width, this.canvas.height);
+    console.log('  Canvas dimensions (client):', this.canvas.clientWidth, this.canvas.clientHeight);
+    console.log('  Canvas bounding rect:', this.canvas.getBoundingClientRect());
+
     // Initialize quantum simulation
-    this.simulation = new QuantumSimulation(this.config);
+    const dx = this.config.domainSize / this.config.gridSize;
+    this.simulation = new QuantumSimulation(
+      this.config.gridSize,
+      dx,
+      this.config.dt,
+      1.0, // hbar (default)
+      1.0, // mass (default)
+      this.config.boundaryCondition,
+      this.config.timeScale
+    );
 
     // Initialize visualizer (using VisualizerV2!)
     this.visualizer = new Visualizer(this.canvas, this.simulation, {
@@ -61,13 +76,72 @@ class QuantumPlaygroundApp {
       showPotentialPlot: true
     });
 
-    // Initialize controller
-    this.controller = new Controller(
-      this.canvas,
-      this.simulation,
-      this.visualizer,
-      this
-    );
+    // Debug logging
+    console.log('✓ VisualizerV2 created');
+    console.log('  Visualizer dimensions:', this.visualizer.width, 'x', this.visualizer.height);
+    console.log('  Panels created:', Object.keys(this.visualizer.panels));
+
+    // Gather UI elements for controller
+    const uiElements = {
+      canvas: this.canvas,
+      playPauseBtn: document.getElementById('play-pause'),
+      resetBtn: document.getElementById('reset'),
+      speedSlider: document.getElementById('speed-slider'),
+      speedValue: document.getElementById('speed-value'),
+      measurementRadiusSlider: document.getElementById('measurement-radius-slider'),
+      measurementRadiusValue: document.getElementById('measurement-radius-value'),
+      potentialStrengthSlider: document.getElementById('potential-strength-slider'),
+      potentialStrengthValue: document.getElementById('potential-strength-value'),
+      gridSizeSelect: document.getElementById('grid-size'),
+      gridToggle: document.getElementById('grid-toggle'),
+      vizModeSelect: document.getElementById('viz-mode'),
+      totalProbDisplay: document.getElementById('total-probability'),
+      timeDisplay: document.getElementById('time-elapsed'),
+      measurementResult: document.getElementById('info-overlay'),
+      hoverProbability: document.getElementById('hover-info'),
+      positionSelector: document.getElementById('position-selector'),
+      momentumSelector: document.getElementById('momentum-selector'),
+      packetSizeSlider: document.getElementById('packet-size-slider'),
+      packetSizeValue: document.getElementById('packet-size-value'),
+      positionDisplay: document.getElementById('position-display'),
+      momentumDisplay: document.getElementById('momentum-display')
+    };
+
+    // Verify all UI elements exist
+    for (const [key, element] of Object.entries(uiElements)) {
+      if (!element) {
+        console.warn(`UI element not found: ${key}`);
+      }
+    }
+
+    // Initialize controller with correct parameters
+    this.controller = new Controller(this.simulation, this.visualizer, uiElements);
+
+    // Now initialize the simulation with values from the controller (single source of truth)
+    // dx already calculated above at line 59
+    const centerX = this.controller.initialPosition.x * this.config.gridSize;
+    const centerY = this.controller.initialPosition.y * this.config.gridSize;
+    const maxMomentum = 5.0;
+    const momentumX = (this.controller.initialMomentum.x - 0.5) * 2 * maxMomentum;
+    const momentumY = (this.controller.initialMomentum.y - 0.5) * 2 * maxMomentum;
+    const width = this.controller.packetSize * dx * 3;
+
+    console.log(`Initializing simulation from controller initial conditions:`);
+    console.log(`  Position: (${centerX.toFixed(2)}, ${centerY.toFixed(2)})`);
+    console.log(`  Momentum: (${momentumX.toFixed(2)}, ${momentumY.toFixed(2)})`);
+    console.log(`  Width: ${width.toFixed(2)}`);
+
+    this.simulation.initialize({
+      centerX: centerX,
+      centerY: centerY,
+      width: width,
+      momentumX: momentumX,
+      momentumY: momentumY
+    });
+
+    // Verify normalization
+    const totalProb = this.simulation.getTotalProbability();
+    console.log(`Initial total probability: ${totalProb.toFixed(8)}`);
 
     // Handle window resize
     window.addEventListener('resize', () => {
@@ -174,14 +248,17 @@ class QuantumPlaygroundApp {
     const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1);
     this.lastTime = currentTime;
 
-    // Update physics (multiple steps per frame for better accuracy)
-    for (let i = 0; i < this.config.stepsPerFrame; i++) {
-      this.simulation.step();
-    }
-
     // Update controller (UI state)
     if (this.controller) {
-      this.controller.update();
+      this.controller.update(deltaTime);
+    }
+
+    // Update physics only if playing (multiple steps per frame for better accuracy)
+    if (this.controller && this.controller.getIsPlaying()) {
+      const stepsPerFrame = this.controller.getStepsPerFrame();
+      for (let i = 0; i < stepsPerFrame; i++) {
+        this.simulation.step();
+      }
     }
 
     // Render visualization

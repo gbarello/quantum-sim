@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VisualizerV2 Minimal Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #ffffff;
+    }
+    canvas {
+      border: 2px solid red;
+      width: 800px;
+      height: 600px;
+      display: block;
+      margin: 20px 0;
+      background: #000;
+    }
+    h1 {
+      color: #4fc3f7;
+    }
+    .message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success {
+      background: #004d00;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+    }
+    .error {
+      background: #4d0000;
+      color: #ff0000;
+      border: 1px solid #ff0000;
+    }
+    .info {
+      background: #003d4d;
+      color: #00bfff;
+      border: 1px solid #00bfff;
+    }
+  </style>
+</head>
+<body>
+  <h1>VisualizerV2 Minimal Test</h1>
+  <div id="output"></div>
+  <canvas id="quantum-canvas"></canvas>
+
+  <script type="module">
+    const output = document.getElementById('output');
+
+    function log(message, type = 'info') {
+      console.log(message);
+      const div = document.createElement('div');
+      div.className = `message ${type}`;
+      div.textContent = message;
+      output.appendChild(div);
+    }
+
+    function logError(message, error) {
+      console.error(message, error);
+      const div = document.createElement('div');
+      div.className = 'message error';
+      div.innerHTML = `<strong>${message}</strong><br><pre>${error.message}\n${error.stack}</pre>`;
+      output.appendChild(div);
+    }
+
+    async function runTests() {
+      try {
+        log('=== Starting Minimal Test ===', 'info');
+
+        // Step 1: Check canvas
+        log('Step 1: Checking canvas element...', 'info');
+        const canvas = document.getElementById('quantum-canvas');
+
+        if (!canvas) {
+          throw new Error('Canvas element not found!');
+        }
+
+        log(`✓ Canvas found: ${canvas.tagName}#${canvas.id}`, 'success');
+        log(`  Canvas dimensions (client): ${canvas.clientWidth}x${canvas.clientHeight}`, 'info');
+        log(`  Canvas dimensions (physical): ${canvas.width}x${canvas.height}`, 'info');
+
+        // Step 2: Try importing VisualizerV2
+        log('Step 2: Importing VisualizerV2...', 'info');
+        const { VisualizerV2 } = await import('./js/visualization/VisualizerV2.js');
+        log('✓ VisualizerV2 imported successfully', 'success');
+
+        // Step 3: Try importing QuantumSimulation
+        log('Step 3: Importing QuantumSimulation...', 'info');
+        const { QuantumSimulation } = await import('./js/quantum.js');
+        log('✓ QuantumSimulation imported successfully', 'success');
+
+        // Step 4: Create simulation
+        log('Step 4: Creating simulation...', 'info');
+        const gridSize = 128;
+        const domainSize = 10.0;
+        const dx = domainSize / gridSize;
+        const simulation = new QuantumSimulation(
+          gridSize,      // gridSize
+          dx,            // dx
+          0.01,          // dt
+          1.0,           // hbar
+          1.0,           // mass
+          'periodic',    // boundaryCondition
+          1.0            // timeScale
+        );
+        log('✓ Simulation created', 'success');
+
+        // Step 5: Initialize simulation
+        log('Step 5: Initializing simulation...', 'info');
+        simulation.initialize();
+        log('✓ Simulation initialized', 'success');
+        log(`  Total probability: ${simulation.getTotalProbability().toFixed(8)}`, 'info');
+
+        // Step 6: Create visualizer
+        log('Step 6: Creating VisualizerV2...', 'info');
+        const visualizer = new VisualizerV2(canvas, simulation);
+        log('✓ VisualizerV2 created', 'success');
+        log(`  Visualizer dimensions: ${visualizer.width}x${visualizer.height}`, 'info');
+        log(`  Panels created: ${Object.keys(visualizer.panels).join(', ')}`, 'info');
+
+        // Step 7: Render once
+        log('Step 7: Attempting render...', 'info');
+        visualizer.render();
+        log('✓ Render complete', 'success');
+
+        // Step 8: Animate a few frames
+        log('Step 8: Running animation test (10 frames)...', 'info');
+        for (let i = 0; i < 10; i++) {
+          simulation.step();
+          visualizer.render();
+        }
+        log('✓ Animation test complete', 'success');
+
+        log('=== ALL TESTS PASSED! ===', 'success');
+
+      } catch (error) {
+        logError('TEST FAILED', error);
+      }
+    }
+
+    // Run tests after a brief delay to ensure DOM is ready
+    setTimeout(runTests, 100);
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wavefunction Amplitude Check</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #ffffff;
+    }
+    .info { color: #00bfff; margin: 10px 0; }
+    .warning { color: #ffaa00; margin: 10px 0; }
+    .error { color: #ff0000; margin: 10px 0; }
+    .success { color: #00ff00; margin: 10px 0; }
+    pre { background: #000; padding: 10px; border: 1px solid #444; }
+  </style>
+</head>
+<body>
+  <h1>Wavefunction Amplitude Diagnostic</h1>
+  <div id="output"></div>
+
+  <script type="module">
+    const output = document.getElementById('output');
+
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = type;
+      div.innerHTML = msg;
+      output.appendChild(div);
+      console.log(msg);
+    }
+
+    async function checkWavefunction() {
+      try {
+        log('<h2>Importing modules...</h2>', 'info');
+        const { QuantumSimulation } = await import('./js/quantum.js');
+
+        log('✓ Creating simulation...', 'success');
+        const gridSize = 128;
+        const domainSize = 10.0;
+        const dx = domainSize / gridSize;
+        const sim = new QuantumSimulation(
+          gridSize,      // gridSize
+          dx,            // dx
+          0.01,          // dt
+          1.0,           // hbar
+          1.0,           // mass
+          'periodic',    // boundaryCondition
+          1.0            // timeScale
+        );
+
+        log('✓ Initializing simulation...', 'success');
+        sim.initialize();
+
+        log('<h2>Analyzing wavefunction...</h2>', 'info');
+
+        // Get wavefunction data
+        const psi = sim.psi;
+        const gridSize = sim.gridSize;
+
+        // Calculate statistics
+        let maxAmplitude = 0;
+        let minAmplitude = Infinity;
+        let totalAmplitude = 0;
+        let nonZeroCount = 0;
+
+        const centerIndex = Math.floor(gridSize / 2);
+        const centerValue = psi.get(centerIndex, centerIndex);
+        const centerAmp = Math.sqrt(centerValue.re * centerValue.re + centerValue.im * centerValue.im);
+
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const val = psi.get(x, y);
+            const amp = Math.sqrt(val.re * val.re + val.im * val.im);
+
+            maxAmplitude = Math.max(maxAmplitude, amp);
+            minAmplitude = Math.min(minAmplitude, amp);
+            totalAmplitude += amp;
+            if (amp > 1e-10) nonZeroCount++;
+          }
+        }
+
+        const avgAmplitude = totalAmplitude / (gridSize * gridSize);
+
+        log(`<b>Grid Size:</b> ${gridSize} x ${gridSize}`, 'info');
+        log(`<b>Total Probability:</b> ${sim.getTotalProbability().toFixed(8)}`, 'info');
+        log(`<b>Max Amplitude:</b> ${maxAmplitude.toFixed(6)}`, 'info');
+        log(`<b>Min Amplitude:</b> ${minAmplitude.toFixed(6)}`, 'info');
+        log(`<b>Average Amplitude:</b> ${avgAmplitude.toFixed(6)}`, 'info');
+        log(`<b>Center Amplitude:</b> ${centerAmp.toFixed(6)}`, 'info');
+        log(`<b>Non-zero cells:</b> ${nonZeroCount} / ${gridSize * gridSize}`, 'info');
+
+        // Check if amplitude is too low for visibility
+        const saturationScale = 5.0;
+        const boostedCenter = Math.sqrt(centerAmp);
+        const lightness = 20 + Math.min(60, boostedCenter * saturationScale * 80);
+        const saturation = Math.min(100, boostedCenter * saturationScale * 100);
+
+        log('<h2>Rendering Prediction:</h2>', 'info');
+        log(`<b>Boosted Center Amplitude:</b> ${boostedCenter.toFixed(6)}`, 'info');
+        log(`<b>Expected Lightness at center:</b> ${lightness.toFixed(1)}% (range: 20-80%)`, 'info');
+        log(`<b>Expected Saturation at center:</b> ${saturation.toFixed(1)}% (range: 0-100%)`, 'info');
+
+        if (lightness < 30) {
+          log('⚠️ <b>WARNING:</b> Lightness is very low! Canvas will appear almost black!', 'warning');
+          log('This means the wavefunction amplitude is too small for the current saturation scale.', 'warning');
+        } else if (lightness < 40) {
+          log('⚠️ <b>CAUTION:</b> Lightness is low. Canvas might appear dim.', 'warning');
+        } else {
+          log('✓ Lightness should be visible', 'success');
+        }
+
+        if (maxAmplitude < 0.1) {
+          log('⚠️ <b>PROBLEM FOUND:</b> Wavefunction amplitude is very small!', 'error');
+          log('Expected amplitude range: 0.5-2.0 for typical Gaussian wavepacket', 'error');
+          log(`Actual max amplitude: ${maxAmplitude.toFixed(6)}`, 'error');
+          log('<br><b>Possible causes:</b>', 'error');
+          log('1. Wavepacket width is too large (spread out)', 'error');
+          log('2. Normalization issue', 'error');
+          log('3. Initialization parameters incorrect', 'error');
+        } else {
+          log(`✓ Amplitude range looks reasonable (max: ${maxAmplitude.toFixed(3)})`, 'success');
+        }
+
+        // Sample some values around center
+        log('<h2>Sample values around center:</h2>', 'info');
+        const samples = [];
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const x = centerIndex + dx;
+            const y = centerIndex + dy;
+            const val = psi.get(x, y);
+            const amp = Math.sqrt(val.re * val.re + val.im * val.im);
+            samples.push(`(${dx},${dy}): ${amp.toFixed(4)}`);
+          }
+        }
+        log('<pre>' + samples.join('\n') + '</pre>', 'info');
+
+      } catch (error) {
+        log(`<b>ERROR:</b> ${error.message}`, 'error');
+        log(`<pre>${error.stack}</pre>`, 'error');
+      }
+    }
+
+    checkWavefunction();
+  </script>
+</body>
+</html>

@@ -80,8 +80,8 @@ export class VisualizerV2 {
     const showPlot = this.config.showPotentialPlot && potentialType !== 'none';
 
     this.layout = new CanvasLayout(
-      this.canvas.width,
-      this.canvas.height,
+      this.width,
+      this.height,
       {
         showPlot: showPlot,
         showPhaseWheel: this.config.showPhaseWheel
@@ -156,6 +156,13 @@ export class VisualizerV2 {
   render() {
     const time = performance.now();
 
+    // Check if potential type changed - if so, recreate panels to add/remove plot
+    const currentPotentialType = this.simulation.potentialType || 'none';
+    if (!this._lastPotentialType || this._lastPotentialType !== currentPotentialType) {
+      this._lastPotentialType = currentPotentialType;
+      this.createPanels();
+    }
+
     // Clear canvas (black background)
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -198,6 +205,13 @@ export class VisualizerV2 {
     // Store logical dimensions
     this.width = rect.width;
     this.height = rect.height;
+
+    // Debug logging
+    console.log('VisualizerV2.resize() called');
+    console.log('  Canvas rect:', rect);
+    console.log('  Device pixel ratio:', dpr);
+    console.log('  Physical dimensions:', this.canvas.width, 'x', this.canvas.height);
+    console.log('  Logical dimensions:', this.width, 'x', this.height);
 
     // Recreate panels with new layout
     this.createPanels();
