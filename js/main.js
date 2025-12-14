@@ -33,7 +33,7 @@ const config = {
 
   // Visualization
   showGrid: false,
-  showPhaseWheel: true
+  showPhaseWheel: false
   // Note: visualizationMode is now set from control defaults in ControlsManager
 };
 

@@ -164,8 +164,9 @@ export class PotentialPlotPanel extends Panel {
 
         ctx.save();
 
-        // No opaque background - plot is transparent showing the canvas background
-        // (matching original implementation)
+        // Draw light background for the plot panel
+        ctx.fillStyle = '#f5f5f5'; // Light gray background
+        ctx.fillRect(this.bounds.x, this.bounds.y, plotWidth, plotHeight);
 
         // Draw the potential profile as a thin red line
         ctx.beginPath();
