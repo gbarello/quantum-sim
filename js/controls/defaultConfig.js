@@ -51,6 +51,38 @@ export const defaultControlsConfig = {
           }
         },
 
+        // Position X Input
+        {
+          type: 'textinput',
+          id: 'position-x',
+          label: 'Position X',
+          inputType: 'number',
+          min: 0,
+          max: 1,
+          step: 0.01,
+          value: 0.5,
+          precision: 3,
+          onChange: (val, manager) => {
+            manager.handlePositionTextChange('x', val);
+          }
+        },
+
+        // Position Y Input
+        {
+          type: 'textinput',
+          id: 'position-y',
+          label: 'Position Y',
+          inputType: 'number',
+          min: 0,
+          max: 1,
+          step: 0.01,
+          value: 0.5,
+          precision: 3,
+          onChange: (val, manager) => {
+            manager.handlePositionTextChange('y', val);
+          }
+        },
+
         // Momentum Selector Canvas
         {
           type: 'canvas',
@@ -68,6 +100,38 @@ export const defaultControlsConfig = {
             // Redraw the canvas to show the new selection
             manager.drawMomentumSelector();
             manager.updateMomentumDisplay();
+          }
+        },
+
+        // Momentum X Input (displayed as -1 to 1, but stored internally as 0 to 1)
+        {
+          type: 'textinput',
+          id: 'momentum-x',
+          label: 'Momentum X',
+          inputType: 'number',
+          min: -1,
+          max: 1,
+          step: 0.01,
+          value: 0.2,  // 0.6 internal -> 0.2 display = (0.6 - 0.5) * 2
+          precision: 3,
+          onChange: (val, manager) => {
+            manager.handleMomentumTextChange('x', val);
+          }
+        },
+
+        // Momentum Y Input (displayed as -1 to 1, but stored internally as 0 to 1)
+        {
+          type: 'textinput',
+          id: 'momentum-y',
+          label: 'Momentum Y',
+          inputType: 'number',
+          min: -1,
+          max: 1,
+          step: 0.01,
+          value: 0.12,  // 0.56 internal -> 0.12 display = (0.56 - 0.5) * 2
+          precision: 3,
+          onChange: (val, manager) => {
+            manager.handleMomentumTextChange('y', val);
           }
         },
 

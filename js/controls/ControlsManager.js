@@ -187,6 +187,10 @@ export class ControlsManager {
       this.state.packetSize = packetSizeControl.getValue();
     }
 
+    // Initialize text input fields to match canvas selectors
+    this.updatePositionDisplay();
+    this.updateMomentumDisplay();
+
     console.log('Loaded initial state from controls:', {
       position: this.state.initialPosition,
       momentum: this.state.initialMomentum,
@@ -462,14 +466,36 @@ export class ControlsManager {
    * Update position display (called after position changes)
    */
   updatePositionDisplay() {
-    // Position is shown visually in the canvas, no text display needed
+    // Update text input fields to match canvas selector
+    const posXControl = this.getControl('position-x');
+    const posYControl = this.getControl('position-y');
+
+    if (posXControl && this.state.initialPosition.x !== null) {
+      posXControl.setValue(this.state.initialPosition.x);
+    }
+    if (posYControl && this.state.initialPosition.y !== null) {
+      posYControl.setValue(this.state.initialPosition.y);
+    }
   }
 
   /**
    * Update momentum display (called after momentum changes)
    */
   updateMomentumDisplay() {
-    // Momentum is shown visually in the canvas, no text display needed
+    // Update text input fields to match canvas selector
+    // Transform from internal 0-1 to display -1 to 1
+    // Formula: display = (internal - 0.5) * 2
+    const momXControl = this.getControl('momentum-x');
+    const momYControl = this.getControl('momentum-y');
+
+    if (momXControl && this.state.initialMomentum.x !== null) {
+      const displayValue = (this.state.initialMomentum.x - 0.5) * 2;
+      momXControl.setValue(displayValue);
+    }
+    if (momYControl && this.state.initialMomentum.y !== null) {
+      const displayValue = (this.state.initialMomentum.y - 0.5) * 2;
+      momYControl.setValue(displayValue);
+    }
   }
 
   /**
@@ -570,6 +596,56 @@ export class ControlsManager {
     this.state.measurementCount = 0;
 
     console.log(`Reset simulation: pos=(${params.centerX.toFixed(2)},${params.centerY.toFixed(2)}), momentum=(${params.momentumX.toFixed(2)},${params.momentumY.toFixed(2)}), width=${params.width.toFixed(2)}`);
+  }
+
+  /**
+   * Handle position text input changes
+   * @param {string} axis - 'x' or 'y'
+   * @param {number} value - New normalized value (0-1)
+   */
+  handlePositionTextChange(axis, value) {
+    // Update state
+    if (axis === 'x') {
+      this.state.initialPosition.x = value;
+    } else if (axis === 'y') {
+      this.state.initialPosition.y = value;
+    }
+
+    // Update canvas selector to match
+    const positionControl = this.getControl('position-selector');
+    if (positionControl) {
+      positionControl.setValue({
+        x: this.state.initialPosition.x,
+        y: this.state.initialPosition.y
+      });
+    }
+  }
+
+  /**
+   * Handle momentum text input changes
+   * @param {string} axis - 'x' or 'y'
+   * @param {number} value - New display value (-1 to 1)
+   */
+  handleMomentumTextChange(axis, value) {
+    // Transform from display -1 to 1 to internal 0 to 1
+    // Formula: internal = display / 2 + 0.5
+    const internalValue = value / 2 + 0.5;
+
+    // Update state with internal value
+    if (axis === 'x') {
+      this.state.initialMomentum.x = internalValue;
+    } else if (axis === 'y') {
+      this.state.initialMomentum.y = internalValue;
+    }
+
+    // Update canvas selector to match
+    const momentumControl = this.getControl('momentum-selector');
+    if (momentumControl) {
+      momentumControl.setValue({
+        x: this.state.initialMomentum.x,
+        y: this.state.initialMomentum.y
+      });
+    }
   }
 
   /**

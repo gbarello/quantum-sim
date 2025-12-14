@@ -35,7 +35,8 @@ class TextInputControl extends BaseControl {
         super(config);
 
         // Input configuration
-        this.inputType = config.type || 'text';
+        // Use inputType if provided, otherwise fall back to type (for backwards compatibility)
+        this.inputType = config.inputType || config.type || 'text';
         this.placeholder = config.placeholder || '';
         this.currentValue = config.value !== undefined ? config.value : '';
         this.min = config.min;
@@ -60,8 +61,26 @@ class TextInputControl extends BaseControl {
     /**
      * Render the control to a container element
      */
-    render(container) {
-        super.render(container);
+    render(parentElement) {
+        if (!parentElement) {
+            throw new Error(`TextInputControl '${this.id}': parentElement is required`);
+        }
+
+        // Create main container
+        this.container = this._createContainer();
+        this.container.classList.add('textinput-control');
+
+        // Create label if provided
+        if (this.label) {
+            const label = document.createElement('label');
+            label.className = 'control-label';
+            label.textContent = this.label;
+            label.htmlFor = `${this.id}-input`;
+            if (this.tooltip) {
+                label.setAttribute('title', this.tooltip);
+            }
+            this.container.appendChild(label);
+        }
 
         // Create input wrapper
         const wrapper = document.createElement('div');
@@ -70,6 +89,7 @@ class TextInputControl extends BaseControl {
         // Create input element
         this.inputElement = document.createElement('input');
         this.inputElement.type = this.inputType;
+        this.inputElement.id = `${this.id}-input`;
         this.inputElement.className = 'input-field';
         this.inputElement.placeholder = this.placeholder;
 
@@ -109,9 +129,14 @@ class TextInputControl extends BaseControl {
         this.validationMessage.className = 'input-validation-message';
         wrapper.appendChild(this.validationMessage);
 
-        this.element.appendChild(wrapper);
+        this.container.appendChild(wrapper);
 
-        return this.element;
+        // Attach to parent element
+        if (parentElement) {
+            parentElement.appendChild(this.container);
+        }
+
+        return this.container;
     }
 
     /**
@@ -191,20 +216,16 @@ class TextInputControl extends BaseControl {
             this._updateInputDisplay(value);
             this._setValid();
 
-            // Emit change event
-            this.emit('change', {
-                value: value,
-                control: this
-            });
+            // Emit change event with just the value (similar to SliderControl)
+            this.emit('change', value);
         } else {
             // Show validation error
             this._setInvalid(validation.message);
 
-            // Emit invalid event
+            // Emit invalid event with full details
             this.emit('invalid', {
                 value: rawValue,
-                message: validation.message,
-                control: this
+                message: validation.message
             });
         }
     }
