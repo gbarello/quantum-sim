@@ -22,6 +22,38 @@ export const defaultControlsConfig = {
     keyboardShortcuts: true
   },
 
+  // Persistent controls - always visible at top, outside tabs
+  persistentControls: [
+    // Reset Button
+    {
+      type: 'button',
+      id: 'reset',
+      text: 'Reset',
+      icon: '↻',
+      variant: 'secondary',
+      fullWidth: false,
+      onClick: (manager) => {
+        manager.handleReset();
+      }
+    },
+
+    // Play/Pause Button
+    {
+      type: 'button',
+      id: 'play-pause',
+      text: 'Play',
+      icon: '▶',
+      variant: 'primary',
+      fullWidth: false,
+      onClick: (manager, btn) => {
+        const isPlaying = manager.togglePlayPause();
+        // Update button text and icon based on new state
+        btn.setText(isPlaying ? 'Pause' : 'Play');
+        btn.setIcon(isPlaying ? '⏸' : '▶');
+      }
+    }
+  ],
+
   // Tab-based panels
   tabs: [
     // =====================================================================
@@ -155,19 +187,6 @@ export const defaultControlsConfig = {
             manager.state.packetSize = val;
             manager.updatePacketSizeDisplay();
           }
-        },
-
-        // Reset Button
-        {
-          type: 'button',
-          id: 'reset',
-          text: 'Reset',
-          icon: '↻',
-          variant: 'secondary',
-          fullWidth: true,
-          onClick: (manager) => {
-            manager.handleReset();
-          }
         }
       ]
     },
@@ -180,22 +199,6 @@ export const defaultControlsConfig = {
       title: 'Simulation',
       icon: '▶️',
       controls: [
-        // Play/Pause Button
-        {
-          type: 'button',
-          id: 'play-pause',
-          text: 'Play',
-          icon: '▶',
-          variant: 'primary',
-          fullWidth: true,
-          onClick: (manager, btn) => {
-            const isPlaying = manager.togglePlayPause();
-            // Update button text and icon based on new state
-            btn.setText(isPlaying ? 'Pause' : 'Play');
-            btn.setIcon(isPlaying ? '⏸' : '▶');
-          }
-        },
-
         // Speed Slider
         {
           type: 'slider',
@@ -325,6 +328,22 @@ export function validateConfig(config) {
 
   if (!config.defaultTab || typeof config.defaultTab !== 'string') {
     errors.push('Configuration must have a "defaultTab" string');
+  }
+
+  // Validate persistent controls (optional)
+  if (config.persistentControls) {
+    if (!Array.isArray(config.persistentControls)) {
+      errors.push('persistentControls must be an array');
+    } else {
+      config.persistentControls.forEach((control, index) => {
+        if (!control.type || typeof control.type !== 'string') {
+          errors.push(`Persistent control ${index} must have a "type" string`);
+        }
+        if (!control.id || typeof control.id !== 'string') {
+          errors.push(`Persistent control ${index} must have an "id" string`);
+        }
+      });
+    }
   }
 
   // Validate each tab

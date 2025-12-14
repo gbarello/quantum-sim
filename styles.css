@@ -290,6 +290,39 @@ main {
   order: 1; /* Controls first on mobile */
 }
 
+/* Persistent Controls (Always Visible) */
+.controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.persistent-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+}
+
+.persistent-controls .btn {
+  flex: 1;
+  min-width: 0; /* Allow buttons to shrink */
+  max-width: 100%; /* Allow full width */
+}
+
+/* Tab Manager Container */
+.tab-manager-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Tab Manager Styles */
 .tab-container {
   display: flex;

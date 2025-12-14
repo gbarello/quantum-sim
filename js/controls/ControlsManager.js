@@ -80,6 +80,7 @@ export class ControlsManager {
     // TabManager and panels
     this.tabManager = null;
     this.panels = new Map(); // Map of panel ID -> ControlPanel instance
+    this.persistentControls = new Map(); // Map of control ID -> control instance
 
     // Canvas selector states (for initial condition selectors)
     this.selectorCanvases = new Map(); // Map of canvas ID -> canvas element
@@ -121,6 +122,16 @@ export class ControlsManager {
       throw new Error('ControlsManager: containerElement is required for initialize()');
     }
 
+    // Create main wrapper for all controls
+    const wrapper = document.createElement('div');
+    wrapper.className = 'controls-wrapper';
+
+    // Create and render persistent controls first (if any)
+    if (this.config.persistentControls && this.config.persistentControls.length > 0) {
+      const persistentContainer = this._createPersistentControls(this.config.persistentControls);
+      wrapper.appendChild(persistentContainer);
+    }
+
     // Create control panels from config
     this.createFromConfig(this.config);
 
@@ -144,8 +155,16 @@ export class ControlsManager {
       storageKey: 'quantumPlayground.activeTab'
     });
 
+    // Create a container for the tab manager
+    const tabContainer = document.createElement('div');
+    tabContainer.className = 'tab-manager-container';
+
     // Render the tab manager
-    const rendered = this.tabManager.render(containerElement);
+    this.tabManager.render(tabContainer);
+    wrapper.appendChild(tabContainer);
+
+    // Append wrapper to container
+    containerElement.appendChild(wrapper);
 
     // Setup initial conditions for selector canvases
     this._initializeSelectorCanvases();
@@ -154,7 +173,41 @@ export class ControlsManager {
     // This ensures state matches the control panel defaults
     this._loadInitialStateFromControls();
 
-    return rendered;
+    return wrapper;
+  }
+
+  /**
+   * Create persistent controls that are always visible
+   * @param {Array} controlConfigs - Array of control configurations
+   * @returns {HTMLElement} Container with persistent controls
+   * @private
+   */
+  _createPersistentControls(controlConfigs) {
+    const container = document.createElement('div');
+    container.className = 'persistent-controls';
+
+    // Process and create each control
+    const processedConfigs = this._processControlConfigs(controlConfigs);
+
+    processedConfigs.forEach(config => {
+      try {
+        const control = ControlRegistry.create(config);
+        if (control) {
+          // Store reference
+          this.persistentControls.set(config.id, control);
+
+          // Render control
+          const controlElement = control.render();
+          if (controlElement) {
+            container.appendChild(controlElement);
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to create persistent control '${config.id}':`, error);
+      }
+    });
+
+    return container;
   }
 
   /**
@@ -789,6 +842,14 @@ export class ControlsManager {
   destroy() {
     if (this._destroyed) return;
 
+    // Destroy persistent controls
+    this.persistentControls.forEach(control => {
+      if (control && typeof control.destroy === 'function') {
+        control.destroy();
+      }
+    });
+    this.persistentControls.clear();
+
     // Destroy TabManager
     if (this.tabManager) {
       this.tabManager.destroy();
@@ -822,11 +883,17 @@ export class ControlsManager {
   }
 
   /**
-   * Get a control by ID from any panel
+   * Get a control by ID from any panel or persistent controls
    * @param {string} controlId - ID of control to find
    * @returns {BaseControl|null} Control instance or null if not found
    */
   getControl(controlId) {
+    // Check persistent controls first
+    if (this.persistentControls.has(controlId)) {
+      return this.persistentControls.get(controlId);
+    }
+
+    // Check panels
     for (const panel of this.panels.values()) {
       const control = panel.getControl(controlId);
       if (control) return control;
