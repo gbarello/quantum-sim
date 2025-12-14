@@ -96,12 +96,25 @@ class QuantumPlaygroundApp {
         config.timeScale
       );
 
+      // Read initial potential type from radio buttons (if available)
+      const potentialRadio = document.querySelector('input[name="potential-type"]:checked');
+      if (potentialRadio) {
+        this.simulation.setPotentialType(potentialRadio.value);
+        console.log(`Initial potential type set to: ${potentialRadio.value}`);
+      }
+
       // Initialize visualizer
       console.log('Creating visualizer...');
       this.visualizer = new Visualizer(canvas, this.simulation);
       this.visualizer.setGridVisible(config.showGrid);
       this.visualizer.setPhaseWheelVisible(config.showPhaseWheel);
-      this.visualizer.setVisualizationMode(config.visualizationMode);
+
+      // Read initial visualization mode from dropdown (if available)
+      const vizModeSelect = document.getElementById('viz-mode');
+      const initialVizMode = vizModeSelect ? vizModeSelect.value : config.visualizationMode;
+      // Map "complex" to "full" for internal use
+      const internalMode = initialVizMode === 'complex' ? 'full' : initialVizMode;
+      this.visualizer.setVisualizationMode(internalMode);
 
       // Gather UI elements
       const uiElements = {

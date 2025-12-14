@@ -148,11 +148,11 @@
             <div class="radio-group">
               <label>
                 <span>None</span>
-                <input type="radio" name="potential-type" value="none" checked aria-label="No potential">
+                <input type="radio" name="potential-type" value="none" aria-label="No potential">
               </label>
               <label>
                 <span>Single</span>
-                <input type="radio" name="potential-type" value="single" aria-label="Single well potential">
+                <input type="radio" name="potential-type" value="single" checked aria-label="Single well potential">
               </label>
               <label>
                 <span>Double</span>
@@ -196,9 +196,8 @@
           <div class="toggle-control visualization-control">
             <label for="viz-mode">Visualization:</label>
             <select id="viz-mode" aria-label="Select visualization mode">
-              <option value="complex" selected>Complex (Phase + Amplitude)</option>
-              <option value="probability">Probability Density Only</option>
-              <option value="phase">Phase Only</option>
+              <option value="complex">Complex (Phase + Amplitude)</option>
+              <option value="probability" selected>Probability Density Only</option>
             </select>
           </div>
         </div>
