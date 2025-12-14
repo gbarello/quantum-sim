@@ -195,18 +195,6 @@ export class WavefunctionPanel extends Panel {
         // phase = π/2 maps to 90° (yellow, imaginary positive)
         let hue = (phase * 180 / Math.PI + 360) % 360;
 
-        // Apply contrast boost: use square root to compress dynamic range
-        // This makes dim areas brighter while keeping bright areas bright
-        const boostedAmplitude = Math.sqrt(amplitude);
-
-        // Saturation based on amplitude (0-100%)
-        // Scale amplitude to saturation percentage with high multiplier
-        const saturation = Math.min(100, boostedAmplitude * this.config.saturationScale * 100);
-
-        // Variable lightness based on amplitude for better contrast
-        // Bright where amplitude is high, dark where it's low
-        const lightness = 20 + Math.min(60, boostedAmplitude * this.config.saturationScale * 80);
-
         // Handle different visualization modes
         if (this.config.visualizationMode === 'probability') {
             // Grayscale based on probability density |ψ|²
@@ -215,14 +203,24 @@ export class WavefunctionPanel extends Panel {
             const boosted = Math.pow(probability * this.config.saturationScale * 50, 0.5);
             const gray = Math.floor(Math.min(255, boosted * 255));
             return [gray, gray, gray];
-        } else if (this.config.visualizationMode === 'phase') {
-            // Full saturation, amplitude affects lightness
-            const phaseLightness = 20 + Math.min(60, boostedAmplitude * this.config.saturationScale * 80);
-            return this.hslToRgb(hue, 100, phaseLightness);
         }
 
-        // Default: full complex visualization
-        return this.hslToRgb(hue, saturation, lightness);
+        // For 'full' and 'phase' modes: match the contrast of probability mode
+        // Use the same gamma correction and scaling as probability mode
+        const probability = amplitude * amplitude;
+        const boosted = Math.pow(probability * this.config.saturationScale * 50, 0.5);
+
+        // Convert to lightness (0-100 range for HSL)
+        // Map the same way probability maps to gray, but to lightness scale
+        const lightness = Math.min(100, boosted * 100);
+
+        if (this.config.visualizationMode === 'phase') {
+            // Full saturation, amplitude affects lightness (matching probability contrast)
+            return this.hslToRgb(hue, 100, lightness);
+        }
+
+        // Default: full complex visualization with high saturation for vibrant colors
+        return this.hslToRgb(hue, 100, lightness);
     }
 
     /**
