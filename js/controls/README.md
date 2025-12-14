@@ -1,554 +1,218 @@
-# Controls System - Modular UI Framework
+# Controls System
 
-This directory contains a modular, extensible control system for building user interfaces in the Quantum Particle Playground.
+A modular, configuration-driven UI framework for managing interactive controls in the Quantum Particle Playground.
 
-## Architecture Overview
+## Architecture
 
-The controls system is built on a component-based architecture with the following key concepts:
+The controls system consists of five main components:
 
-1. **BaseControl**: Abstract base class providing common functionality
-2. **ControlRegistry**: Central registry for control types and factory
-3. **Concrete Controls**: Specific implementations (SliderControl, ButtonControl, etc.)
-4. **ControlPanel**: Container for grouping related controls
-5. **TabManager**: Manages multiple panels as tabs
-6. **ControlsManager**: Top-level coordinator
+```
+ControlsManager (top-level coordinator)
+    ↓
+TabManager (organizes panels into tabs)
+    ↓
+ControlPanel (groups related controls)
+    ↓
+BaseControl (abstract base class)
+    ↓
+Concrete Controls (SliderControl, ButtonControl, etc.)
+```
 
-## Core Components
+**Key Design Principles:**
+- Configuration-driven: Controls defined declaratively in `defaultConfig.js`
+- Component-based: Each control is an independent, reusable component
+- Event-driven: Controls communicate via events, not direct coupling
+- Registry pattern: `ControlRegistry` acts as factory for creating controls
 
-### BaseControl (Abstract Base Class)
+## Quick Start
 
-`BaseControl` is the foundation for all control types. It provides:
+### Using the System
 
-- **Lifecycle Management**: render(), update(), destroy()
-- **Event System**: emit(), on(), off()
-- **State Management**: enable(), disable(), show(), hide()
-- **Value Interface**: getValue(), setValue() (abstract)
+```javascript
+import { ControlsManager } from './controls/ControlsManager.js';
 
-#### Creating a New Control Type
+// Initialize with configuration
+const controlsManager = new ControlsManager(config, callbacks);
 
-All control types must extend `BaseControl` and implement three abstract methods:
+// Access controls by ID
+const speedSlider = controlsManager.getControl('speed');
+speedSlider.setValue(2.5);
+
+// Subscribe to events
+speedSlider.on('change', (value) => {
+  console.log('Speed changed:', value);
+});
+```
+
+### Creating a Custom Control
 
 ```javascript
 import { BaseControl } from './BaseControl.js';
+import { ControlRegistry } from './ControlRegistry.js';
 
 class MyControl extends BaseControl {
-  constructor(config) {
-    super(config);
-    // Initialize your control-specific properties
-  }
-
-  // Required: Render the control
+  // Required: Render the DOM structure
   render(parentElement) {
-    // Create your DOM structure
     this.container = this._createContainer();
-
-    // Add your UI elements
+    const label = this._createLabel(this.id);
     const input = document.createElement('input');
-    input.id = this.id;
     // ... configure input
 
-    this.container.appendChild(this._createLabel(this.id));
+    this.container.appendChild(label);
     this.container.appendChild(input);
-
-    // Attach to parent
-    if (parentElement) {
-      parentElement.appendChild(this.container);
-    }
-
+    parentElement?.appendChild(this.container);
     return this.container;
   }
 
   // Required: Get current value
   getValue() {
-    const input = this.container.querySelector('input');
-    return input.value;
-  }
-
-  // Required: Set value
-  setValue(value) {
-    const input = this.container.querySelector('input');
-    input.value = value;
-    this.emit('change', value);
-  }
-}
-```
-
-#### BaseControl API
-
-**Constructor:**
-```javascript
-new BaseControl({
-  id: 'my-control',           // Required: Unique identifier
-  label: 'My Control',        // Required: Display label
-  defaultValue: null,         // Optional: Initial value
-  enabled: true,              // Optional: Initial enabled state
-  visible: true,              // Optional: Initial visibility
-  onChange: (value) => {},    // Optional: Change handler
-  className: 'custom-class',  // Optional: CSS classes
-  tooltip: 'Help text',       // Optional: Tooltip
-  attributes: { ... }         // Optional: HTML attributes
-})
-```
-
-**Methods:**
-- `render(parentElement)` - Create and attach DOM elements (abstract)
-- `getValue()` - Get current value (abstract)
-- `setValue(value)` - Set value (abstract)
-- `emit(eventName, data)` - Emit custom event
-- `on(eventName, handler)` - Subscribe to event
-- `off(eventName, handler)` - Unsubscribe from event
-- `enable()` - Enable the control
-- `disable()` - Disable the control
-- `show()` - Show the control
-- `hide()` - Hide the control
-- `update()` - Refresh display (override if needed)
-- `destroy()` - Cleanup and remove control
-- `isEnabled()` - Check if enabled
-- `isVisible()` - Check if visible
-- `isDestroyed()` - Check if destroyed
-
-**Protected Helpers:**
-- `_createLabel(forId)` - Create a label element
-- `_createContainer()` - Create wrapper div
-- `_applyAttributes(element)` - Apply classes and attributes
-
-**Events:**
-- `'change'` - Value changed
-- `'enabled'` - Control enabled
-- `'disabled'` - Control disabled
-- `'shown'` - Control shown
-- `'hidden'` - Control hidden
-- Custom events via `emit()`
-
----
-
-### ControlRegistry
-
-`ControlRegistry` is a static class that manages control type registration and provides a factory for creating controls from configuration.
-
-#### Registering Control Types
-
-```javascript
-import { ControlRegistry } from './ControlRegistry.js';
-import { SliderControl } from './types/SliderControl.js';
-
-// Register a control type
-ControlRegistry.register('slider', SliderControl);
-ControlRegistry.register('button', ButtonControl);
-ControlRegistry.register('radio', RadioControl);
-```
-
-#### Creating Controls
-
-```javascript
-// Create from configuration
-const control = ControlRegistry.create({
-  type: 'slider',
-  id: 'speed-slider',
-  label: 'Speed',
-  min: 0,
-  max: 100,
-  value: 50
-});
-
-// Create multiple controls
-const controls = ControlRegistry.createMany([
-  { type: 'slider', id: 'slider1', label: 'Slider 1' },
-  { type: 'button', id: 'btn1', label: 'Button 1' }
-]);
-```
-
-#### ControlRegistry API
-
-**Static Methods:**
-- `register(type, controlClass)` - Register a control type
-- `create(config)` - Create a control from config
-- `createMany(configs, ignoreErrors)` - Create multiple controls
-- `has(type)` - Check if type is registered
-- `getTypes()` - Get all registered types
-- `getClass(type)` - Get class for a type
-- `validate(config)` - Validate configuration
-- `unregister(type)` - Remove a registration
-- `clear()` - Clear all registrations
-
-**Example Validation:**
-```javascript
-const validation = ControlRegistry.validate({
-  type: 'slider',
-  id: 'my-slider',
-  label: 'My Slider'
-});
-
-if (validation.valid) {
-  const control = ControlRegistry.create(config);
-} else {
-  console.error('Invalid config:', validation.errors);
-}
-```
-
----
-
-## Usage Examples
-
-### Example 1: Simple Control Creation
-
-```javascript
-import { BaseControl } from './BaseControl.js';
-import { ControlRegistry } from './ControlRegistry.js';
-
-// Define a simple text input control
-class TextControl extends BaseControl {
-  render(parentElement) {
-    this.container = this._createContainer();
-
-    const label = this._createLabel(this.id);
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = this.id;
-    input.value = this.defaultValue || '';
-
-    input.addEventListener('input', () => {
-      this.emit('change', input.value);
-    });
-
-    this.container.appendChild(label);
-    this.container.appendChild(input);
-
-    if (parentElement) {
-      parentElement.appendChild(this.container);
-    }
-
-    return this.container;
-  }
-
-  getValue() {
     return this.container.querySelector('input').value;
   }
 
+  // Required: Set value and emit change event
   setValue(value) {
     this.container.querySelector('input').value = value;
     this.emit('change', value);
   }
 }
 
-// Register and use
-ControlRegistry.register('text', TextControl);
+// Register your control type
+ControlRegistry.register('mycontrol', MyControl);
 
-const nameInput = ControlRegistry.create({
-  type: 'text',
-  id: 'name-input',
-  label: 'Name',
-  defaultValue: 'John Doe',
-  onChange: (value) => console.log('Name changed:', value)
+// Use it
+const control = ControlRegistry.create({
+  type: 'mycontrol',
+  id: 'my-control',
+  label: 'My Control'
 });
-
-nameInput.render(document.body);
 ```
 
-### Example 2: Control with Events
+## Core APIs
 
-```javascript
-const slider = ControlRegistry.create({
-  type: 'slider',
-  id: 'volume-slider',
-  label: 'Volume',
-  min: 0,
-  max: 100,
-  value: 50
-});
+### BaseControl
 
-// Subscribe to events
-slider.on('change', (value) => {
-  console.log('Volume:', value);
-});
+All controls extend `BaseControl` and must implement:
+- `render(parentElement)` - Create and attach DOM
+- `getValue()` - Return current value
+- `setValue(value)` - Set value and emit change event
 
-slider.on('enabled', () => {
-  console.log('Slider enabled');
-});
+Inherited methods:
+- `enable()`, `disable()`, `isEnabled()`
+- `show()`, `hide()`, `isVisible()`
+- `on(event, handler)`, `off(event, handler)`, `emit(event, data)`
+- `update()` - Refresh display (override if needed)
+- `destroy()` - Clean up and remove
 
-// Render and manipulate
-slider.render(document.getElementById('controls'));
-slider.setValue(75);
-slider.disable();
-```
+### ControlRegistry
 
-### Example 3: Dynamic Control Management
+Factory for creating controls from configuration:
+- `register(type, ControlClass)` - Register a control type
+- `create(config)` - Create single control from config
+- `createMany(configs)` - Create multiple controls
+- `validate(config)` - Validate configuration
+- `has(type)`, `getTypes()`, `getClass(type)` - Introspection
 
-```javascript
-// Create controls from configuration
-const config = [
-  {
-    type: 'slider',
-    id: 'speed',
-    label: 'Speed',
-    min: 0,
-    max: 10,
-    value: 5
-  },
-  {
-    type: 'button',
-    id: 'reset',
-    label: 'Reset',
-    onClick: () => console.log('Reset clicked')
-  }
-];
+### ControlsManager
 
-// Create all controls
-const controls = ControlRegistry.createMany(config);
+Top-level coordinator:
+- `getControl(id)` - Get control by ID
+- `update()` - Update all display controls
+- `togglePlayPause()` - Toggle simulation state
+- `handleReset()` - Reset simulation to initial conditions
 
-// Render to container
-const container = document.getElementById('control-panel');
-controls.forEach(control => control.render(container));
+## Available Control Types
 
-// Later: cleanup
-controls.forEach(control => control.destroy());
-```
+| Type | Description | Key Config |
+|------|-------------|-----------|
+| `button` | Action button | `onClick` |
+| `slider` | Numeric slider | `min`, `max`, `step`, `unit` |
+| `radio` | Radio button group | `options` |
+| `select` | Dropdown menu | `options` |
+| `display` | Read-only text display | `getValue` callback |
+| `canvas` | Interactive canvas widget | `draw` callback |
+| `textinput` | Text input field | `placeholder`, `validation` |
 
----
+See individual files in `types/` for implementation details.
 
 ## Configuration Schema
 
-### Base Configuration (All Controls)
+Controls are defined in `defaultConfig.js` with this structure:
 
 ```javascript
 {
-  type: string,              // Control type (must be registered)
-  id: string,                // Unique identifier
-  label: string,             // Display label
-  defaultValue: any,         // Initial value
-  enabled: boolean,          // Initial enabled state (default: true)
-  visible: boolean,          // Initial visibility (default: true)
-  onChange: function,        // Change event handler
-  className: string,         // Additional CSS classes
-  tooltip: string,           // Tooltip text
-  attributes: object         // Additional HTML attributes
+  type: 'slider',           // Control type (must be registered)
+  id: 'speed',              // Unique identifier
+  label: 'Speed',           // Display label
+  defaultValue: 1.0,        // Initial value
+
+  // Type-specific options
+  min: 0.1,
+  max: 5.0,
+  step: 0.1,
+  unit: 'x',
+
+  // Callbacks
+  onChange: (value) => { /* handler */ }
 }
 ```
 
-### Control-Specific Configuration
-
-Each control type may have additional configuration options. See individual control type documentation for details.
-
----
-
-## Best Practices
-
-### 1. Always Register Before Creating
+Panels and tabs are defined similarly:
 
 ```javascript
-// Good
-ControlRegistry.register('slider', SliderControl);
-const slider = ControlRegistry.create({ type: 'slider', ... });
-
-// Bad - will throw error
-const slider = ControlRegistry.create({ type: 'slider', ... });
-ControlRegistry.register('slider', SliderControl);
-```
-
-### 2. Validate Configuration
-
-```javascript
-// Validate before creating
-const validation = ControlRegistry.validate(config);
-if (!validation.valid) {
-  console.error('Invalid config:', validation.errors);
-  return;
-}
-
-const control = ControlRegistry.create(config);
-```
-
-### 3. Clean Up Properly
-
-```javascript
-// Always destroy controls when done
-control.destroy();
-
-// Or destroy multiple
-controls.forEach(c => c.destroy());
-```
-
-### 4. Use Event System
-
-```javascript
-// Use event system instead of direct callbacks
-control.on('change', handleChange);
-
-// Instead of
-control.onChange = handleChange;
-```
-
-### 5. Leverage Protected Helpers
-
-```javascript
-class MyControl extends BaseControl {
-  render(parentElement) {
-    // Use helpers for consistency
-    this.container = this._createContainer();
-    const label = this._createLabel(this.id);
-
-    // Build your control
-    // ...
-  }
+{
+  tabs: [
+    {
+      id: 'simulation',
+      label: 'Simulation',
+      controls: [/* control configs */]
+    }
+  ]
 }
 ```
-
----
-
-## Error Handling
-
-The control system provides comprehensive error handling:
-
-```javascript
-try {
-  // Missing required field
-  const control = ControlRegistry.create({
-    type: 'slider',
-    // Missing id and label
-  });
-} catch (error) {
-  console.error(error.message);
-  // "ControlRegistry.create: config.id is required"
-}
-
-try {
-  // Unknown type
-  const control = ControlRegistry.create({
-    type: 'unknown',
-    id: 'test',
-    label: 'Test'
-  });
-} catch (error) {
-  console.error(error.message);
-  // "Unknown control type 'unknown'. Available types: slider, button, ..."
-}
-```
-
----
-
-## Testing
-
-### Unit Testing a Control
-
-```javascript
-describe('MyControl', () => {
-  let control;
-  let container;
-
-  beforeEach(() => {
-    container = document.createElement('div');
-    control = new MyControl({
-      id: 'test-control',
-      label: 'Test'
-    });
-  });
-
-  afterEach(() => {
-    control.destroy();
-  });
-
-  it('should render correctly', () => {
-    control.render(container);
-    expect(control.container).toBeTruthy();
-    expect(container.children.length).toBe(1);
-  });
-
-  it('should emit change event', (done) => {
-    control.on('change', (value) => {
-      expect(value).toBe('test-value');
-      done();
-    });
-    control.setValue('test-value');
-  });
-
-  it('should enable/disable', () => {
-    control.disable();
-    expect(control.isEnabled()).toBe(false);
-
-    control.enable();
-    expect(control.isEnabled()).toBe(true);
-  });
-});
-```
-
----
-
-## Implementation Status
-
-### Phase 1: Foundation ✓ (Complete)
-- [x] BaseControl abstract class
-- [x] ControlRegistry singleton
-- [x] Documentation and examples
-- [x] Error handling and validation
-
-### Phase 2: Concrete Controls (Not Started)
-- [ ] SliderControl
-- [ ] ButtonControl
-- [ ] RadioControl
-- [ ] SelectControl
-- [ ] CanvasControl
-- [ ] DisplayControl
-
-### Phase 3: Containers (Not Started)
-- [ ] ControlPanel
-- [ ] TabManager
-
-### Phase 4: Manager (Not Started)
-- [ ] ControlsManager
-- [ ] defaultConfig.js
-
-### Phase 5: Migration (Not Started)
-- [ ] Update main.js
-- [ ] Update HTML/CSS
-- [ ] Remove old Controller
-
-### Phase 6: Enhancement (Not Started)
-- [ ] Advanced features
-- [ ] Presets system
-- [ ] Additional control types
-
----
 
 ## File Structure
 
 ```
 js/controls/
-├── BaseControl.js          (150 lines) ✓ Complete
-├── ControlRegistry.js      (100 lines) ✓ Complete
-├── README.md              (This file) ✓ Complete
-│
-├── types/                 (Future: Concrete controls)
-│   ├── SliderControl.js   (200 lines)
-│   ├── ButtonControl.js   (120 lines)
-│   ├── RadioControl.js    (150 lines)
-│   ├── SelectControl.js   (130 lines)
-│   ├── CanvasControl.js   (180 lines)
-│   └── DisplayControl.js  (100 lines)
-│
-├── ControlPanel.js        (Future: Panel container)
-├── TabManager.js          (Future: Tab management)
-├── ControlsManager.js     (Future: Main coordinator)
-└── defaultConfig.js       (Future: Default configuration)
+├── BaseControl.js          # Abstract base class for all controls
+├── ControlRegistry.js      # Factory and registry for control types
+├── ControlPanel.js         # Container for grouping controls
+├── TabManager.js           # Tab-based panel navigation
+├── ControlsManager.js      # Top-level coordinator
+├── defaultConfig.js        # Default control configuration
+├── types/                  # Concrete control implementations
+│   ├── ButtonControl.js
+│   ├── SliderControl.js
+│   ├── RadioControl.js
+│   ├── SelectControl.js
+│   ├── DisplayControl.js
+│   ├── CanvasControl.js
+│   └── TextInputControl.js
+└── styles/                 # Control-specific styling
+    └── controls.css
 ```
 
----
+## Best Practices
 
-## Contributing
+1. **Always clean up:** Call `destroy()` on controls when done
+2. **Validate configs:** Use `ControlRegistry.validate()` before creating
+3. **Use events:** Prefer event system over direct callbacks
+4. **Extend BaseControl:** All custom controls should extend `BaseControl`
+5. **Register early:** Register control types before creating instances
+6. **Keep it simple:** Controls should do one thing well
 
-When adding new control types:
+## Testing
 
-1. Extend `BaseControl`
-2. Implement all abstract methods
-3. Register with `ControlRegistry`
-4. Add documentation
-5. Write tests
-6. Update this README
+Each control type has its own test file in `types/`. Run tests with:
 
----
+```bash
+# Node.js tests
+node js/controls/types/ButtonControl.test.js
 
-## License
+# Browser tests
+open test-controls.html
+```
 
-Part of the Quantum Particle Playground project.
+## Documentation
 
-**Last Updated**: 2025-12-14
-**Status**: Phase 1 Complete
+The code is the primary documentation - each class and method includes JSDoc comments explaining its purpose and usage. This README provides the architectural overview; for implementation details, read the source files directly.

@@ -35,7 +35,21 @@ quantum-play/
 │   ├── main.js                   # App coordinator & initialization
 │   ├── quantum.js                # Physics engine (Schrödinger solver)
 │   ├── visualization.js          # Canvas rendering & display
-│   ├── controls.js               # User interface controller
+│   ├── controls/                # Modular control system
+│   │   ├── ControlsManager.js   # Top-level UI coordinator
+│   │   ├── TabManager.js        # Tab-based panel manager
+│   │   ├── ControlPanel.js      # Control grouping container
+│   │   ├── BaseControl.js       # Abstract base class for controls
+│   │   ├── ControlRegistry.js   # Control type registry/factory
+│   │   ├── defaultConfig.js     # Default control configuration
+│   │   └── types/               # Concrete control implementations
+│   │       ├── ButtonControl.js
+│   │       ├── SliderControl.js
+│   │       ├── RadioControl.js
+│   │       ├── SelectControl.js
+│   │       ├── DisplayControl.js
+│   │       ├── CanvasControl.js
+│   │       └── TextInputControl.js
 │   └── utils.js                  # Complex numbers, grids, utilities
 │
 ├── lib/                          # External libraries
@@ -176,36 +190,82 @@ quantum-play/
 
 ---
 
-### 4. User Interface Controller (`js/controls.js`)
+### 4. Controls System (`js/controls/`)
 
-**Purpose:** Manages all user interactions and UI state.
+**Purpose:** Modular, extensible UI framework for managing user interactions and control panels.
 
-**Key Class:** `Controller`
+**Architecture:** Component-based system with declarative configuration
 
-**Interaction Modes:**
-- **Adding Potentials:** Click/drag to add Gaussian barriers
-- **Measuring:** Click to perform quantum measurement at a point
-- **Viewing:** Default mode for observation
+**Key Components:**
 
-**UI Elements Managed:**
-- **Initial Condition Controls:**
-  - Position selector canvas (click to set starting position)
-  - Momentum selector canvas (click to set starting momentum)
-  - Packet size slider (adjust wavepacket width)
-- Mode buttons (add potential, measure, view)
-- Visualization mode selector
-- Control buttons (reset, play/pause)
-- Speed and measurement radius sliders
-- Potential well type selector (radio buttons)
-- Time display and statistics
-- Hover probability tooltip
+#### `ControlsManager` (Top-level coordinator)
+- Initializes and manages all control panels and tabs
+- Handles inter-control communication
+- Provides global control access via `getControl(id)`
+- Manages tab switching and panel visibility
+- Coordinates with simulation and visualization systems
 
-**Event Handling:**
-- Canvas mouse/touch events (main canvas and selector canvases)
-- Keyboard shortcuts
-- Button clicks
-- Slider input events
-- Real-time UI updates
+#### `TabManager` (Tab-based navigation)
+- Manages multiple control panels as tabs
+- Handles tab switching UI
+- Organizes controls into logical groups:
+  - **Initial Conditions:** Position, momentum, packet size, reset
+  - **Simulation:** Play/pause, speed, time display
+  - **Measurement:** Mode buttons, measurement radius
+  - **Potential:** Potential type, strength controls
+  - **Visualization:** Display mode, grid toggle, phase wheel
+  - **Statistics:** Probability display, performance metrics
+
+#### `ControlPanel` (Container for related controls)
+- Groups related controls together
+- Handles panel-level show/hide
+- Manages control lifecycle within panel
+- Renders controls in declared order
+
+#### `BaseControl` (Abstract base class)
+- Lifecycle: render(), update(), destroy()
+- Event system: emit(), on(), off()
+- State management: enable(), disable(), show(), hide()
+- Value interface: getValue(), setValue()
+
+#### `ControlRegistry` (Factory and registry)
+- Registers control types (slider, button, radio, etc.)
+- Creates controls from declarative config
+- Validates control configurations
+- Provides type safety and error handling
+
+**Control Types Available:**
+- **ButtonControl**: Action buttons (play, pause, reset)
+- **SliderControl**: Numeric range inputs (speed, measurement radius)
+- **RadioControl**: Multiple choice selection (potential types)
+- **SelectControl**: Dropdown menus (grid size)
+- **DisplayControl**: Read-only value display (time, probability)
+- **CanvasControl**: Interactive canvas widgets (position/momentum selectors)
+- **TextInputControl**: Text input fields
+
+**Configuration-Driven:**
+Controls are defined declaratively in `defaultConfig.js`:
+```javascript
+{
+  type: 'slider',
+  id: 'speed',
+  label: 'Speed',
+  min: 0.1,
+  max: 5.0,
+  defaultValue: 1.0,
+  onChange: (value) => { /* handler */ }
+}
+```
+
+**Benefits:**
+- Easy to add new controls without modifying core code
+- Tab-based organization keeps UI clean and organized
+- Type-safe control creation with validation
+- Consistent styling and behavior across all controls
+- Simplified testing via isolated components
+
+**Documentation:**
+The controls system uses minimal external documentation - just one `README.md` providing architectural overview. Implementation details are documented in the code itself via JSDoc comments and clear naming. This keeps documentation maintainable and ensures it stays in sync with the code.
 
 ---
 
@@ -268,7 +328,7 @@ quantum-play/
 ```
 index.html loads
     ↓
-main.js imports modules (quantum, visualization, controls, utils)
+main.js imports modules (quantum, visualization, ControlsManager, utils)
     ↓
 QuantumPlaygroundApp.init() called
     ↓
@@ -280,9 +340,12 @@ QuantumPlaygroundApp.init() called
 ├─→ Visualizer initialization
 │   └─→ Create ImageData buffer
 │   └─→ Set visualization mode
-└─→ Controller initialization
-    └─→ Bind event listeners
-    └─→ Setup UI elements
+└─→ ControlsManager initialization
+    └─→ Register control types in ControlRegistry
+    └─→ Create control panels from config
+    └─→ Initialize TabManager with panels
+    └─→ Bind event handlers and callbacks
+    └─→ Render controls to DOM
     ↓
 mainLoop() starts (requestAnimationFrame)
 ```
@@ -303,8 +366,8 @@ For each physics step (stepsPerFrame):
     │   ├─→ Apply potential (half step)
     │   └─→ Update time
     ↓
-Controller.update()
-    └─→ Update UI displays (time, stats)
+ControlsManager.update()
+    └─→ Update display controls (time, probability, stats)
     ↓
 Visualizer.render()
     ├─→ Read wavefunction data
@@ -322,7 +385,7 @@ requestAnimationFrame(mainLoop)
 ```
 User clicks on canvas
     ↓
-Controller receives click event
+ControlsManager receives click event via canvas interaction handler
     ↓
 Convert canvas coords → grid coords
     ↓
@@ -335,7 +398,7 @@ QuantumSimulation.measure(x, y)
     ↓
 Visualizer shows measurement result
     ↓
-Controller updates UI with measurement info
+ControlsManager updates display controls with measurement info
 ```
 
 ---
@@ -451,26 +514,26 @@ The code includes stability checks:
 
 1. Add potential function to `QuantumSimulation` in `quantum.js`
 2. Update `addPotential()` or create specialized method
-3. Update UI in `controls.js` to expose new option
+3. Add new option to potential type RadioControl in `controls/defaultConfig.js`
 4. Test with `tests/boundary-check.js` or `tests/test-quantum.js`
 
 ### Changing Visualization
 
 1. Modify color mapping in `Visualizer.render()` in `visualization.js`
-2. Update visualization mode selector in `controls.js`
+2. Update visualization mode RadioControl in `controls/defaultConfig.js`
 3. Test across different wavefunctions
 
 ### Modifying Physics Parameters
 
 1. Update default config in `main.js`
 2. Ensure stability condition is still satisfied
-3. Consider adding UI controls in `controls.js`
+3. Consider adding new controls in `controls/defaultConfig.js`
 4. Validate with `tests/validate.js`
 
 ### Adding New Measurements
 
 1. Extend `measure()` method in `QuantumSimulation` (`quantum.js`)
-2. Add UI trigger in `Controller` (`controls.js`)
+2. Add UI trigger button/control in `controls/defaultConfig.js`
 3. Update visualization to show results (`visualization.js`)
 4. Test with `tests/test-integrated-measurement.js`
 
@@ -489,8 +552,8 @@ Key areas:
 ### Model-View-Controller (MVC)
 
 - **Model:** `QuantumSimulation` (quantum.js) - physics state and logic
-- **View:** `Visualizer` (visualization.js) - rendering and display
-- **Controller:** `Controller` (controls.js) - user input and coordination
+- **View:** `Visualizer` (visualization/) - rendering and display
+- **Controller:** `ControlsManager` (controls/) - user input and coordination
 
 ### Observer Pattern (Implicit)
 
@@ -542,16 +605,16 @@ Key areas:
 
 ## File Size and Complexity
 
-| File | Lines | Complexity | Purpose |
-|------|-------|------------|---------|
-| `js/main.js` | 307 | Low | Simple orchestration |
-| `js/quantum.js` | 748 | High | Complex physics algorithms |
+| File/Directory | Lines | Complexity | Purpose |
+|----------------|-------|------------|---------|
+| `js/main.js` | ~300 | Low | Simple orchestration |
+| `js/quantum.js` | ~750 | High | Complex physics algorithms |
 | `js/visualization/` | ~1,900 | Medium | Modular panel-based rendering (7 files) |
-| `js/controls.js` | 919 | Medium | Event handling and UI with initial condition controls |
-| `js/utils.js` | 908 | Medium | Math utilities and grids |
-| `lib/fft.js` | 322 | High | Optimized FFT algorithm |
+| `js/controls/` | ~2,500 | Medium | Modular control system (15+ files) |
+| `js/utils.js` | ~900 | Medium | Math utilities and grids |
+| `lib/fft.js` | ~320 | High | Optimized FFT algorithm |
 
-**Total Application Code:** ~5,100 lines
+**Total Application Code:** ~6,700 lines
 
 ---
 
@@ -682,13 +745,17 @@ For detailed information on specific components:
 
 **Programmatically:**
 ```javascript
-// Set initial conditions in controller
-app.controller.initialPosition = { x: 0.5, y: 0.5 };  // Normalized 0-1
-app.controller.initialMomentum = { x: 0.6, y: 0.4 };  // Normalized 0-1
-app.controller.packetSize = 1.2;  // Multiplier
+// Access initial condition controls and set values
+const posControl = app.controlsManager.getControl('position-selector');
+const momControl = app.controlsManager.getControl('momentum-selector');
+const sizeControl = app.controlsManager.getControl('packet-size');
+
+posControl.setValue({ x: 0.5, y: 0.5 });  // Normalized 0-1
+momControl.setValue({ x: 0.6, y: 0.4 });  // Normalized 0-1
+sizeControl.setValue(1.2);  // Multiplier
 
 // Trigger reset
-app.controller.handleReset();
+app.controlsManager.handleReset();
 
 // Or directly initialize simulation
 app.simulation.initialize({
@@ -718,7 +785,7 @@ app.visualizer.setVisualizationMode('probability'); // or 'full', 'phase'
 
 ### Pausing/Resuming
 ```javascript
-app.controller.handlePlayPause();
+app.controlsManager.togglePlayPause();
 ```
 
 ---
