@@ -627,13 +627,20 @@ export class ControlsManager {
 
     // Convert canvas coordinates to grid coordinates
     const gridCoords = this._canvasToGridCoords(canvasX, canvasY);
-    if (!gridCoords) return;
+
+    if (!gridCoords) {
+      // If outside the grid, hide the hover circle
+      if (this.visualizer.setHoverState) {
+        this.visualizer.setHoverState(false);
+      }
+      return;
+    }
 
     const { x: gridX, y: gridY } = gridCoords;
 
     // Update hover state in visualizer
-    if (this.visualizer.updateHoverState) {
-      this.visualizer.updateHoverState(gridX, gridY);
+    if (this.visualizer.setHoverState) {
+      this.visualizer.setHoverState(true, gridX, gridY);
     }
   }
 

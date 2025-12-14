@@ -157,8 +157,8 @@ class QuantumPlaygroundApp {
 
       canvas.addEventListener('mouseleave', () => {
         // Clear hover state when mouse leaves canvas
-        if (this.visualizer.updateHoverState) {
-          this.visualizer.updateHoverState(null, null);
+        if (this.visualizer.setHoverState) {
+          this.visualizer.setHoverState(false);
         }
       });
 
