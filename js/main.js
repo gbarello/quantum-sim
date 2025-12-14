@@ -5,7 +5,7 @@
  */
 
 import { QuantumSimulation } from './quantum.js';
-import { Visualizer } from './visualization.js';
+import { VisualizerV2 as Visualizer } from './visualization/VisualizerV2.js';
 import { Controller } from './controls.js';
 
 /**

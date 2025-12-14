@@ -124,15 +124,17 @@ quantum-play/
 
 ---
 
-### 3. Visualization Layer
+### 3. Visualization Layer (`js/visualization/`)
 
-The visualization system has two implementations:
+**Purpose:** Modular panel-based rendering architecture for quantum state visualization.
 
-#### Original: `js/visualization.js` (Visualizer)
+**Key Class:** `VisualizerV2` (aliased as `Visualizer` in main.js)
 
-**Purpose:** Renders the quantum state to an HTML5 Canvas.
-
-**Key Class:** `Visualizer` (727 lines, monolithic)
+**Architecture:**
+- **Panel-based design:** Each visual element is an independent panel
+- **Separation of concerns:** Layout, rendering, and interaction are decoupled
+- **Extensible:** Easy to add new visualization panels
+- **Modular:** 348-line coordinator manages specialized panel components
 
 **Visualization Modes:**
 - **Full (Complex):** Phase → Hue, Amplitude → Brightness (default)
@@ -143,33 +145,13 @@ The visualization system has two implementations:
 - Uses HSL color space
 - Phase (argument of complex number) → Hue (0-360°)
 - Amplitude (magnitude) → Lightness
-- Optimized WebGL-like rendering with ImageData
-
-**Additional Features:**
-- Measurement probability cloud visualization
-- Potential well overlay rendering
-- Grid overlay
-- Coordinate axis indicators
-
-**Status:** Currently used in production (`index.html`)
-
-#### Refactored: `js/visualization/` (VisualizerV2)
-
-**Purpose:** Modular panel-based rendering architecture (December 2025 refactor)
-
-**Key Class:** `VisualizerV2` (348 lines, coordinator)
-
-**Architecture:**
-- **Panel-based design:** Each visual element is an independent panel
-- **Separation of concerns:** Layout, rendering, and interaction are decoupled
-- **Extensible:** Easy to add new visualization panels
-- **100% API compatible** with original Visualizer
+- Optimized rendering with ImageData
 
 **Core Components:**
 - `VisualizerV2.js` - Main coordinator (manages panels)
 - `core/CanvasLayout.js` - Layout management and spatial calculations
 - `core/Panel.js` - Abstract base class for all panels
-- `core/InteractionManager.js` - Event handling (not yet integrated)
+- `core/InteractionManager.js` - Event handling framework
 - `core/TooltipInfo.js` - Tooltip data structure
 
 **Panel Types:**
@@ -181,39 +163,16 @@ The visualization system has two implementations:
 - `MeasurementCirclePanel` - Hover preview circle (185 lines)
 
 **Benefits:**
-- 52% reduction in coordinator complexity
+- 52% reduction in coordinator complexity vs original monolithic design
 - Focused, testable modules (~200-400 lines each)
 - Easy to extend with new visualizations
-- Pixel-perfect identical rendering to original
-- No performance degradation
-
-**Testing:**
-- 7 comprehensive test suites (38+ assertions)
-- 9 visual test pages
-- Side-by-side comparison tool
-- All tests passing
+- High performance rendering
 
 **Documentation:**
 - `docs/VISUALIZER_V2_SUMMARY.md` - Complete architecture guide
 - `docs/VISUALIZER_V2_INTEGRATION.md` - Migration guide
 - `js/visualization/VISUALIZER_V2_QUICK_START.md` - Quick start
 - `js/visualization/README.md` - Developer guide
-- `docs/phases/` - 7 phase implementation summaries
-
-**Status:** Production-ready, available via `index-v2.html` or import aliasing
-
-**How to Use:**
-```javascript
-// Option 1: Use index-v2.html directly
-// Option 2: Import aliasing in main.js (zero code changes)
-import { VisualizerV2 as Visualizer } from './visualization/VisualizerV2.js';
-```
-
-**Migration Notes:**
-- Drop-in replacement for original Visualizer
-- Same public API methods
-- Compatible with existing controls.js
-- Easy rollback if needed
 
 ---
 
@@ -587,12 +546,12 @@ Key areas:
 |------|-------|------------|---------|
 | `js/main.js` | 307 | Low | Simple orchestration |
 | `js/quantum.js` | 748 | High | Complex physics algorithms |
-| `js/visualization.js` | 726 | Medium | Canvas rendering logic |
+| `js/visualization/` | ~1,900 | Medium | Modular panel-based rendering (7 files) |
 | `js/controls.js` | 919 | Medium | Event handling and UI with initial condition controls |
 | `js/utils.js` | 908 | Medium | Math utilities and grids |
 | `lib/fft.js` | 322 | High | Optimized FFT algorithm |
 
-**Total Application Code:** ~3,930 lines
+**Total Application Code:** ~5,100 lines
 
 ---
 

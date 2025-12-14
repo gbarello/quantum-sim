@@ -55,7 +55,8 @@ The application follows a **Model-View-Controller (MVC)** pattern with clean sep
    - Handles measurements and wavefunction collapse
    - Provides potential well implementations
 
-2. **Visualization Layer** (`visualization.js`)
+2. **Visualization Layer** (`visualization/`)
+   - Modular panel-based architecture (VisualizerV2)
    - Renders wavefunction to HTML5 Canvas
    - Complex-to-color mapping (phase → hue, amplitude → brightness)
    - Multiple visualization modes (complex, probability, phase)
@@ -91,7 +92,10 @@ quantum-play/
 ├── js/                           # Application modules (ES6)
 │   ├── main.js                   # App coordinator & initialization (307 lines)
 │   ├── quantum.js                # Physics engine & simulation (748 lines)
-│   ├── visualization.js          # Canvas rendering & display (726 lines)
+│   ├── visualization/            # Modular panel-based rendering (~1,900 lines)
+│   │   ├── VisualizerV2.js       # Main coordinator (348 lines)
+│   │   ├── core/                 # Core layout and panel infrastructure
+│   │   └── panels/               # Individual rendering panels
 │   ├── controls.js               # User interface controller (919 lines)
 │   └── utils.js                  # Utilities & complex math (908 lines)
 │
@@ -155,7 +159,7 @@ ES6 module loading begins
 
 // js/main.js lines 7-9
 import { QuantumSimulation } from './quantum.js';
-import { Visualizer } from './visualization.js';
+import { VisualizerV2 as Visualizer } from './visualization/VisualizerV2.js';
 import { Controller } from './controls.js';
 
 // js/quantum.js line 12
@@ -171,7 +175,10 @@ main.js
   ├─→ quantum.js
   │     └─→ utils.js
   │           └─→ lib/fft.js
-  ├─→ visualization.js
+  ├─→ visualization/VisualizerV2.js
+  │     ├─→ core/CanvasLayout.js
+  │     ├─→ core/Panel.js
+  │     └─→ panels/*.js
   └─→ controls.js
 ```
 
@@ -566,9 +573,10 @@ The architecture supports future enhancements:
    - Add new potential types in `createPotentialWell()`
    - Implement custom `getPotential(x, y)` methods
 
-2. **Visualization Modes** (`visualization.js`)
-   - Add cases to `render()` method
-   - Implement new color mapping functions
+2. **Visualization Modes** (`visualization/`)
+   - Add new panel types in `panels/` directory
+   - Implement new color mapping in WavefunctionPanel
+   - Register new panels in VisualizerV2
 
 3. **Controls** (`controls.js`)
    - Add new UI elements in HTML

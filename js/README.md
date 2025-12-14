@@ -6,7 +6,7 @@ The `js/` directory contains the complete client-side implementation of a real-t
 
 The architecture follows a modular, object-oriented design with clear separation of concerns:
 - **Quantum Physics Engine** (`quantum.js`) - Core simulation logic
-- **Canvas Visualization** (`visualization.js`) - Rendering and visual feedback
+- **Canvas Visualization** (`visualization/`) - Modular panel-based rendering
 - **User Interaction** (`controls.js`) - Input handling and UI coordination
 - **Mathematical Utilities** (`utils.js`) - Complex number operations and FFT
 - **Application Orchestration** (`main.js`) - Initialization and main loop
@@ -17,7 +17,10 @@ The architecture follows a modular, object-oriented design with clear separation
 js/
 ├── main.js           # Application entry point and main loop
 ├── quantum.js        # Quantum simulation engine (Schrodinger equation solver)
-├── visualization.js  # Canvas rendering and visual effects
+├── visualization/    # Modular panel-based rendering
+│   ├── VisualizerV2.js  # Main coordinator
+│   ├── core/            # Layout and panel infrastructure
+│   └── panels/          # Individual rendering panels
 ├── controls.js       # User interaction and UI event handling
 └── utils.js          # Complex numbers, FFT, and mathematical utilities
 ```
@@ -180,14 +183,14 @@ Step 5: ψ → exp(-iVΔt/2ℏ) ψ         [Position space, half potential]
 
 ---
 
-### visualization.js - Canvas Rendering
+### visualization/ - Canvas Rendering
 
-**Purpose**: Renders quantum wavefunction on HTML5 Canvas using complex-to-color mapping, provides visual feedback for measurements, and manages display modes.
+**Purpose**: Modular panel-based architecture for rendering quantum wavefunction on HTML5 Canvas using complex-to-color mapping, provides visual feedback for measurements, and manages display modes.
 
 **Key Classes**:
 
-#### `Visualizer`
-Handles all rendering and visual effects.
+#### `VisualizerV2` (aliased as `Visualizer` in main.js)
+Main coordinator that manages specialized rendering panels. See `visualization/README.md` for detailed documentation.
 
 **Color Mapping** (HSL Color Space):
 ```
@@ -865,10 +868,11 @@ Visualization Mode Change:
 
 ### Adding New Visualization Modes:
 
-1. Add case to `complexToColor()` in `visualization.js`
-2. Define color mapping logic
-3. Add option to `vizModeSelect` dropdown
-4. No changes needed in other modules
+1. Add new panel type in `visualization/panels/` directory
+2. Define rendering logic and color mapping
+3. Register panel in `VisualizerV2.js`
+4. Add option to `vizModeSelect` dropdown
+5. No changes needed in other modules
 
 ### Adding New Initial States:
 
