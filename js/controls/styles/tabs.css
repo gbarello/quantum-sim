@@ -1,0 +1,557 @@
+/* ============================================
+   Tab Navigation System
+   Styles for tab bar, tab buttons, and tab content
+   ============================================ */
+
+/* ============================================
+   Tab Container
+   ============================================ */
+.tab-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   Tab Bar (Horizontal Navigation)
+   ============================================ */
+.tab-bar {
+  display: flex;
+  background-color: var(--bg-color);
+  border-bottom: 2px solid var(--border-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  position: relative;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Tab bar with shadow when scrollable */
+.tab-bar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to right, transparent, var(--bg-color));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.tab-bar.scrollable::after {
+  opacity: 1;
+}
+
+/* ============================================
+   Tab Buttons
+   ============================================ */
+.tab-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  min-height: var(--touch-target-min);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-light);
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.tab-button:hover {
+  color: var(--text-color);
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.tab-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* Active tab state */
+.tab-button.active {
+  color: var(--accent-color);
+  background-color: var(--bg-light);
+  border-bottom-color: var(--accent-color);
+}
+
+.tab-button.active:hover {
+  color: var(--accent-hover);
+  background-color: var(--bg-light);
+}
+
+/* Disabled tab state */
+.tab-button:disabled {
+  color: var(--text-light);
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+
+.tab-button:disabled:hover {
+  background-color: transparent;
+}
+
+/* Tab icon */
+.tab-icon {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+/* Tab label */
+.tab-label {
+  display: inline-block;
+}
+
+/* Tab badge (for notifications/counts) */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-on-dark);
+  background-color: var(--secondary-color);
+  border-radius: var(--border-radius-full);
+  line-height: 1;
+}
+
+.tab-button.active .tab-badge {
+  background-color: var(--accent-color);
+}
+
+/* ============================================
+   Tab Content Area
+   ============================================ */
+.tab-content-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-light);
+}
+
+.tab-content {
+  position: absolute;
+  inset: 0;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(20px);
+  transition: all var(--transition-base);
+  pointer-events: none;
+}
+
+.tab-content.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Custom scrollbar for tab content */
+.tab-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tab-content::-webkit-scrollbar-track {
+  background-color: var(--bg-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.tab-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-dark);
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.tab-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-color);
+}
+
+.tab-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) var(--bg-color);
+}
+
+/* ============================================
+   Tab Animation Variants
+   ============================================ */
+
+/* Slide animation */
+.tab-content-container.anim-slide .tab-content {
+  transform: translateX(30px);
+}
+
+.tab-content-container.anim-slide .tab-content.active {
+  transform: translateX(0);
+}
+
+/* Fade animation */
+.tab-content-container.anim-fade .tab-content {
+  transform: none;
+}
+
+.tab-content-container.anim-fade .tab-content.active {
+  transform: none;
+}
+
+/* Scale animation */
+.tab-content-container.anim-scale .tab-content {
+  transform: scale(0.95);
+}
+
+.tab-content-container.anim-scale .tab-content.active {
+  transform: scale(1);
+}
+
+/* ============================================
+   Vertical Tab Layout (Alternative)
+   ============================================ */
+.tab-container.vertical {
+  flex-direction: row;
+}
+
+.tab-container.vertical .tab-bar {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: 2px solid var(--border-color);
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-width: 150px;
+}
+
+.tab-container.vertical .tab-bar::after {
+  display: none;
+}
+
+.tab-container.vertical .tab-button {
+  justify-content: flex-start;
+  border-bottom: none;
+  border-right: 3px solid transparent;
+}
+
+.tab-container.vertical .tab-button.active {
+  border-right-color: var(--accent-color);
+  border-bottom-color: transparent;
+}
+
+/* ============================================
+   Icon-Only Tabs (Compact Mode)
+   ============================================ */
+.tab-bar.icon-only .tab-label {
+  display: none;
+}
+
+.tab-bar.icon-only .tab-button {
+  padding: var(--spacing-md);
+  min-width: var(--touch-target-min);
+}
+
+/* Show label on hover for icon-only tabs */
+.tab-bar.icon-only .tab-button {
+  position: relative;
+}
+
+.tab-bar.icon-only .tab-button::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--primary-dark);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+  z-index: 10;
+}
+
+.tab-bar.icon-only .tab-button:hover::after {
+  opacity: 1;
+}
+
+/* ============================================
+   Tab Underline Indicator (Alternative Style)
+   ============================================ */
+.tab-bar.underline-indicator {
+  position: relative;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-bar.underline-indicator::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background-color: var(--accent-color);
+  transition: all var(--transition-base);
+  border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+}
+
+.tab-bar.underline-indicator .tab-button {
+  border-bottom: none;
+}
+
+/* Note: Underline position must be calculated dynamically with JavaScript */
+
+/* ============================================
+   Pill-Style Tabs (Alternative Style)
+   ============================================ */
+.tab-bar.pill-style {
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: transparent;
+  border-bottom: none;
+}
+
+.tab-bar.pill-style .tab-button {
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-full);
+  background-color: var(--bg-light);
+  padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+.tab-bar.pill-style .tab-button:hover {
+  border-color: var(--accent-color);
+  background-color: var(--bg-light);
+}
+
+.tab-bar.pill-style .tab-button.active {
+  border-color: var(--accent-color);
+  background-color: var(--accent-color);
+  color: var(--text-on-dark);
+}
+
+/* ============================================
+   Responsive Tab Behavior
+   ============================================ */
+@media (max-width: 768px) {
+  .tab-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    min-height: 40px;
+  }
+
+  .tab-icon {
+    font-size: 1.1em;
+  }
+
+  /* Auto-switch to icon-only on very small screens */
+  @media (max-width: 480px) {
+    .tab-bar.responsive .tab-label {
+      display: none;
+    }
+
+    .tab-bar.responsive .tab-button {
+      padding: var(--spacing-sm);
+      min-width: 44px;
+    }
+  }
+
+  .tab-content {
+    padding: var(--spacing-md);
+  }
+
+  /* Vertical tabs not recommended on mobile */
+  .tab-container.vertical {
+    flex-direction: column;
+  }
+
+  .tab-container.vertical .tab-bar {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 2px solid var(--border-color);
+    min-width: auto;
+  }
+
+  .tab-container.vertical .tab-button {
+    border-right: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .tab-container.vertical .tab-button.active {
+    border-bottom-color: var(--accent-color);
+    border-right-color: transparent;
+  }
+}
+
+/* ============================================
+   Tab Loading State
+   ============================================ */
+.tab-content.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.tab-content.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-content.loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  z-index: 1;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ============================================
+   Tab Empty State
+   ============================================ */
+.tab-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+  text-align: center;
+  color: var(--text-light);
+  min-height: 200px;
+}
+
+.tab-empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.tab-empty-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-sm);
+}
+
+.tab-empty-message {
+  font-size: var(--font-size-sm);
+  max-width: 300px;
+}
+
+/* ============================================
+   Tab Keyboard Navigation Hints
+   ============================================ */
+.tab-button:focus-visible::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 2px solid var(--accent-color);
+  border-radius: var(--border-radius-sm);
+  pointer-events: none;
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+
+/* Screen reader only text for tab controls */
+.tab-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus visible support for better keyboard navigation */
+.tab-button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================
+   Reduced Motion Support
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .tab-button,
+  .tab-content,
+  .tab-content-container.anim-slide .tab-content,
+  .tab-content-container.anim-scale .tab-content {
+    transition: opacity var(--transition-fast);
+    transform: none !important;
+  }
+
+  .tab-content.loading::before {
+    animation: none;
+    border-color: var(--accent-color);
+  }
+}
+
+/* ============================================
+   Dark Mode Support (Future)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  /* Placeholder for dark mode styles */
+  /* Can be implemented when dark mode is added to the main app */
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+  .tab-bar {
+    display: none;
+  }
+
+  .tab-content {
+    position: static;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    page-break-after: always;
+  }
+
+  .tab-empty-state {
+    display: none;
+  }
+}

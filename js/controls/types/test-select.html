@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SelectControl Test</title>
+  <link rel="stylesheet" href="../styles/controls.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background-color: #f5f5f5;
+    }
+
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Monaco', 'Courier New', monospace;
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --spacing-xs: 0.25rem;
+      --spacing-sm: 0.5rem;
+      --spacing-md: 1rem;
+      --spacing-lg: 1.5rem;
+      --spacing-xl: 2rem;
+      --border-radius-sm: 0.25rem;
+      --border-radius-md: 0.5rem;
+      --border-radius-full: 9999px;
+      --border-width: 2px;
+      --bg-light: #ffffff;
+      --bg-dark: #ecf0f1;
+      --text-color: #2c3e50;
+      --text-light: #7f8c8d;
+      --text-on-dark: #ffffff;
+      --border-color: #dfe6e9;
+      --border-dark: #b2bec3;
+      --accent-color: #3498db;
+      --accent-hover: #2980b9;
+      --secondary-color: #95a5a6;
+      --secondary-hover: #7f8c8d;
+      --success-color: #27ae60;
+      --transition-base: all 0.2s ease;
+      --transition-fast: all 0.1s ease;
+      --touch-target-min: 44px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .test-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .test-section h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: #34495e;
+    }
+
+    .event-log {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+
+    .event-log-entry {
+      margin: 0.25rem 0;
+      padding: 0.25rem;
+      border-left: 3px solid #3498db;
+      padding-left: 0.5rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .btn-test {
+      padding: 0.5rem 1rem;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .btn-test:hover {
+      background: #2980b9;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    .status.pass {
+      background: #27ae60;
+      color: white;
+    }
+
+    .status.fail {
+      background: #e74c3c;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>SelectControl Test</h1>
+
+    <div class="test-section">
+      <h2>Test 1: Visualization Mode Select (from defaultConfig.js)</h2>
+      <div id="test1-container"></div>
+      <div class="controls">
+        <button class="btn-test" onclick="test1GetValue()">Get Value</button>
+        <button class="btn-test" onclick="test1SetComplex()">Set to Complex</button>
+        <button class="btn-test" onclick="test1SetProbability()">Set to Probability</button>
+        <button class="btn-test" onclick="test1Disable()">Disable</button>
+        <button class="btn-test" onclick="test1Enable()">Enable</button>
+      </div>
+      <div id="test1-log" class="event-log"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 2: With Placeholder</h2>
+      <div id="test2-container"></div>
+      <div class="controls">
+        <button class="btn-test" onclick="test2GetValue()">Get Value</button>
+        <button class="btn-test" onclick="test2SetValue()">Set Value</button>
+      </div>
+      <div id="test2-log" class="event-log"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 3: With Disabled Options</h2>
+      <div id="test3-container"></div>
+      <div id="test3-log" class="event-log"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 4: Dynamic Options Update</h2>
+      <div id="test4-container"></div>
+      <div class="controls">
+        <button class="btn-test" onclick="test4UpdateOptions()">Update Options</button>
+        <button class="btn-test" onclick="test4GetValue()">Get Value</button>
+      </div>
+      <div id="test4-log" class="event-log"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test Results</h2>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SelectControl } from './SelectControl.js';
+    import { ControlRegistry } from '../ControlRegistry.js';
+
+    // Store test controls globally for button access
+    window.testControls = {};
+    window.testResults = [];
+
+    function log(testId, message) {
+      const logElement = document.getElementById(`${testId}-log`);
+      const entry = document.createElement('div');
+      entry.className = 'event-log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logElement.appendChild(entry);
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    function addTestResult(name, passed, message = '') {
+      window.testResults.push({ name, passed, message });
+      updateTestResults();
+    }
+
+    function updateTestResults() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '';
+
+      window.testResults.forEach(result => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          ${result.name}
+          <span class="status ${result.passed ? 'pass' : 'fail'}">
+            ${result.passed ? 'PASS' : 'FAIL'}
+          </span>
+          ${result.message ? `<br><small>${result.message}</small>` : ''}
+        `;
+        div.style.marginBottom = '0.5rem';
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    // Test 1: Viz mode select from defaultConfig.js
+    const test1Config = {
+      type: 'select',
+      id: 'viz-mode',
+      label: 'Visualization',
+      options: [
+        { value: 'complex', label: 'Complex (Phase + Amplitude)' },
+        { value: 'probability', label: 'Probability Density Only' }
+      ],
+      value: 'probability'
+    };
+
+    try {
+      window.testControls.test1 = ControlRegistry.create(test1Config);
+      window.testControls.test1.render(document.getElementById('test1-container'));
+
+      window.testControls.test1.on('change', (value) => {
+        log('test1', `Value changed to: ${value}`);
+      });
+
+      // Verify initial value
+      const initialValue = window.testControls.test1.getValue();
+      if (initialValue === 'probability') {
+        addTestResult('Test 1: Initial value', true);
+        log('test1', 'Initial value correct: probability');
+      } else {
+        addTestResult('Test 1: Initial value', false, `Expected 'probability', got '${initialValue}'`);
+        log('test1', `ERROR: Initial value incorrect: ${initialValue}`);
+      }
+    } catch (error) {
+      addTestResult('Test 1: Setup', false, error.message);
+      log('test1', `ERROR: ${error.message}`);
+    }
+
+    // Test 2: With placeholder
+    const test2Config = {
+      id: 'test2-select',
+      label: 'Select with Placeholder',
+      options: [
+        { value: 'red', label: 'Red' },
+        { value: 'green', label: 'Green' },
+        { value: 'blue', label: 'Blue' }
+      ],
+      placeholder: 'Choose a color...'
+    };
+
+    try {
+      window.testControls.test2 = new SelectControl(test2Config);
+      window.testControls.test2.render(document.getElementById('test2-container'));
+
+      window.testControls.test2.on('change', (value) => {
+        log('test2', `Value changed to: ${value}`);
+      });
+
+      // Verify placeholder behavior
+      const initialValue = window.testControls.test2.getValue();
+      if (initialValue === null) {
+        addTestResult('Test 2: Placeholder default', true);
+        log('test2', 'Placeholder default works (null value)');
+      } else {
+        addTestResult('Test 2: Placeholder default', false, `Expected null, got '${initialValue}'`);
+      }
+    } catch (error) {
+      addTestResult('Test 2: Setup', false, error.message);
+      log('test2', `ERROR: ${error.message}`);
+    }
+
+    // Test 3: With disabled options
+    const test3Config = {
+      id: 'test3-select',
+      label: 'Select with Disabled Options',
+      options: [
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2 (Disabled)', disabled: true },
+        { value: 'option3', label: 'Option 3' }
+      ],
+      value: 'option1'
+    };
+
+    try {
+      window.testControls.test3 = new SelectControl(test3Config);
+      window.testControls.test3.render(document.getElementById('test3-container'));
+
+      window.testControls.test3.on('change', (value) => {
+        log('test3', `Value changed to: ${value}`);
+      });
+
+      addTestResult('Test 3: Disabled options', true);
+      log('test3', 'Select with disabled options created successfully');
+    } catch (error) {
+      addTestResult('Test 3: Setup', false, error.message);
+      log('test3', `ERROR: ${error.message}`);
+    }
+
+    // Test 4: Dynamic options
+    const test4Config = {
+      id: 'test4-select',
+      label: 'Dynamic Options',
+      options: [
+        { value: 'a', label: 'Option A' },
+        { value: 'b', label: 'Option B' }
+      ],
+      value: 'a'
+    };
+
+    try {
+      window.testControls.test4 = new SelectControl(test4Config);
+      window.testControls.test4.render(document.getElementById('test4-container'));
+
+      window.testControls.test4.on('change', (value) => {
+        log('test4', `Value changed to: ${value}`);
+      });
+
+      log('test4', 'Initial options: A, B (value: a)');
+    } catch (error) {
+      addTestResult('Test 4: Setup', false, error.message);
+      log('test4', `ERROR: ${error.message}`);
+    }
+
+    // Button handlers for test 1
+    window.test1GetValue = () => {
+      const value = window.testControls.test1.getValue();
+      log('test1', `Current value: ${value}`);
+    };
+
+    window.test1SetComplex = () => {
+      window.testControls.test1.setValue('complex');
+      log('test1', 'Set value to: complex');
+    };
+
+    window.test1SetProbability = () => {
+      window.testControls.test1.setValue('probability');
+      log('test1', 'Set value to: probability');
+    };
+
+    window.test1Disable = () => {
+      window.testControls.test1.disable();
+      log('test1', 'Control disabled');
+    };
+
+    window.test1Enable = () => {
+      window.testControls.test1.enable();
+      log('test1', 'Control enabled');
+    };
+
+    // Button handlers for test 2
+    window.test2GetValue = () => {
+      const value = window.testControls.test2.getValue();
+      log('test2', `Current value: ${value === null ? 'null (placeholder)' : value}`);
+    };
+
+    window.test2SetValue = () => {
+      window.testControls.test2.setValue('green');
+      log('test2', 'Set value to: green');
+    };
+
+    // Button handlers for test 4
+    window.test4UpdateOptions = () => {
+      const newOptions = [
+        { value: 'x', label: 'Option X' },
+        { value: 'y', label: 'Option Y' },
+        { value: 'z', label: 'Option Z' }
+      ];
+      window.testControls.test4.setOptions(newOptions);
+      log('test4', 'Options updated to: X, Y, Z');
+    };
+
+    window.test4GetValue = () => {
+      const value = window.testControls.test4.getValue();
+      log('test4', `Current value: ${value}`);
+    };
+
+    console.log('All tests initialized');
+  </script>
+</body>
+</html>

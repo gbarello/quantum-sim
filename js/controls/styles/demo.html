@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control System Styles Demo</title>
+
+  <!-- Base styles from main project -->
+  <link rel="stylesheet" href="../../../styles.css">
+
+  <!-- Control system styles -->
+  <link rel="stylesheet" href="controls.css">
+  <link rel="stylesheet" href="panels.css">
+  <link rel="stylesheet" href="tabs.css">
+
+  <style>
+    .demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--spacing-xl);
+    }
+
+    .demo-section {
+      margin-bottom: var(--spacing-xxl);
+    }
+
+    .demo-title {
+      font-size: var(--font-size-2xl);
+      color: var(--primary-color);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 3px solid var(--accent-color);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+    }
+
+    .demo-card {
+      background: var(--bg-light);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius-md);
+      box-shadow: var(--shadow-md);
+    }
+
+    .demo-card h4 {
+      color: var(--text-light);
+      font-size: var(--font-size-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--spacing-md);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Control System Styles Demo</h1>
+    <p class="subtitle">Showcasing the modular control system styles</p>
+  </header>
+
+  <main class="demo-container">
+
+    <!-- Buttons Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Buttons</h2>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h4>Button Variants</h4>
+          <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <button class="btn btn-primary btn-full">
+              <span class="btn-icon">▶</span>
+              Primary Button
+            </button>
+            <button class="btn btn-secondary btn-full">
+              <span class="btn-icon">⏸</span>
+              Secondary Button
+            </button>
+            <button class="btn btn-outline btn-full">
+              <span class="btn-icon">↻</span>
+              Outline Button
+            </button>
+            <button class="btn btn-ghost btn-full">
+              <span class="btn-icon">⚙</span>
+              Ghost Button
+            </button>
+            <button class="btn btn-success btn-full">
+              <span class="btn-icon">✓</span>
+              Success Button
+            </button>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Button Sizes</h4>
+          <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <button class="btn btn-primary btn-full btn-sm">Small Button</button>
+            <button class="btn btn-primary btn-full">Default Button</button>
+            <button class="btn btn-primary btn-full btn-lg">Large Button</button>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Button States</h4>
+          <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <button class="btn btn-primary btn-full">Normal State</button>
+            <button class="btn btn-primary btn-full" disabled>Disabled State</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sliders Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Sliders</h2>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h4>Basic Slider</h4>
+          <div class="slider-control">
+            <div class="slider-header">
+              <label class="slider-label" for="slider1">Speed</label>
+              <span class="slider-value">1.0x</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="slider1" min="0" max="2" step="0.1" value="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Packet Size</h4>
+          <div class="slider-control">
+            <div class="slider-header">
+              <label class="slider-label" for="slider2">Packet Size</label>
+              <span class="slider-value">2.5</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="slider2" min="0.5" max="5" step="0.1" value="2.5">
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Disabled Slider</h4>
+          <div class="slider-control">
+            <div class="slider-header">
+              <label class="slider-label" for="slider3">Disabled</label>
+              <span class="slider-value">50%</span>
+            </div>
+            <div class="slider-container">
+              <input type="range" id="slider3" min="0" max="100" value="50" disabled>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Radio Groups Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Radio Groups</h2>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h4>Vertical Radio Group</h4>
+          <div class="radio-group">
+            <label class="control-label">Potential Type</label>
+            <label class="radio-option">
+              <input type="radio" name="potential1" value="gaussian" checked>
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Gaussian Barrier</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="potential1" value="square">
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Square Well</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="potential1" value="harmonic">
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Harmonic Oscillator</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Horizontal Radio Group</h4>
+          <div class="radio-group radio-group-horizontal">
+            <label class="control-label" style="width: 100%;">Visualization Mode</label>
+            <label class="radio-option">
+              <input type="radio" name="viz1" value="full" checked>
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Full</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="viz1" value="prob">
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Probability</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="viz1" value="phase">
+              <span class="radio-indicator"></span>
+              <span class="radio-label">Phase</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Select and Toggle Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Other Controls</h2>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h4>Select Dropdown</h4>
+          <div class="select-control">
+            <label class="control-label" for="select1">Boundary Conditions</label>
+            <div class="select-wrapper">
+              <select id="select1">
+                <option value="periodic">Periodic</option>
+                <option value="absorbing">Absorbing</option>
+                <option value="reflecting">Reflecting</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Toggle Switch</h4>
+          <div class="control-group">
+            <label class="control-label">Options</label>
+            <div class="toggle-control">
+              <span>Show Grid</span>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-control">
+              <span>Show Potential</span>
+              <label class="toggle-switch">
+                <input type="checkbox">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h4>Display Values</h4>
+          <div class="display-grid">
+            <div class="display-control">
+              <div class="display-label">Time</div>
+              <div class="display-value">12.45<span class="display-unit">s</span></div>
+            </div>
+            <div class="display-control">
+              <div class="display-label">Probability</div>
+              <div class="display-value">99.8<span class="display-unit">%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab System Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Tab System</h2>
+      <div class="control-panel-container" style="max-width: 800px; margin: 0 auto;">
+        <div class="tab-container">
+          <div class="tab-bar">
+            <button class="tab-button active" onclick="switchTab('initial')">
+              <span class="tab-icon">🎯</span>
+              <span class="tab-label">Initial</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('simulate')">
+              <span class="tab-icon">▶</span>
+              <span class="tab-label">Simulate</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('stats')">
+              <span class="tab-icon">📊</span>
+              <span class="tab-label">Statistics</span>
+              <span class="tab-badge">3</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('advanced')">
+              <span class="tab-icon">⚙</span>
+              <span class="tab-label">Advanced</span>
+            </button>
+          </div>
+
+          <div class="tab-content-container">
+            <div class="tab-content active" id="tab-initial">
+              <h3>Initial Conditions</h3>
+              <div class="control-group">
+                <label class="control-label">Starting Position</label>
+                <p class="control-description">Click on the canvas below to set the initial position of the wavepacket.</p>
+                <div class="canvas-selector">
+                  <div class="canvas-selector-container">
+                    <canvas width="200" height="200" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></canvas>
+                    <div class="canvas-selector-hint">Click to select position</div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-full" style="margin-top: var(--spacing-lg);">
+                <span class="btn-icon">↻</span>
+                Reset to Default
+              </button>
+            </div>
+
+            <div class="tab-content" id="tab-simulate">
+              <h3>Simulation Controls</h3>
+              <div class="slider-control">
+                <div class="slider-header">
+                  <label class="slider-label" for="tab-slider">Speed</label>
+                  <span class="slider-value">1.5x</span>
+                </div>
+                <div class="slider-container">
+                  <input type="range" id="tab-slider" min="0" max="3" step="0.1" value="1.5">
+                </div>
+              </div>
+              <div class="button-group" style="margin-top: var(--spacing-lg);">
+                <button class="btn btn-primary">
+                  <span class="btn-icon">▶</span>
+                  Play
+                </button>
+                <button class="btn btn-secondary">
+                  <span class="btn-icon">⏸</span>
+                  Pause
+                </button>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tab-stats">
+              <h3>Statistics</h3>
+              <div class="display-grid">
+                <div class="display-control">
+                  <div class="display-label">Total Probability</div>
+                  <div class="display-value">99.8<span class="display-unit">%</span></div>
+                </div>
+                <div class="display-control">
+                  <div class="display-label">Time Elapsed</div>
+                  <div class="display-value">45.2<span class="display-unit">s</span></div>
+                </div>
+                <div class="display-control">
+                  <div class="display-label">Grid Size</div>
+                  <div class="display-value">128<span class="display-unit">×128</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tab-advanced">
+              <h3>Advanced Settings</h3>
+              <div class="info-panel">
+                <div class="panel-icon">ℹ️</div>
+                <div class="panel-message">
+                  <div class="panel-message-title">Advanced Options</div>
+                  <div class="panel-message-body">These settings affect the underlying physics simulation.</div>
+                </div>
+              </div>
+              <div class="select-control">
+                <label class="control-label" for="adv-select">Boundary Conditions</label>
+                <div class="select-wrapper">
+                  <select id="adv-select">
+                    <option value="periodic">Periodic</option>
+                    <option value="absorbing">Absorbing</option>
+                    <option value="reflecting">Reflecting</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Collapsible Panel Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Collapsible Panels</h2>
+      <div style="max-width: 600px; margin: 0 auto;">
+        <div class="collapsible-panel">
+          <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3 class="collapsible-title">
+              <span class="collapsible-icon">▶</span>
+              Basic Settings
+            </h3>
+          </div>
+          <div class="collapsible-content">
+            <div class="collapsible-body">
+              <p>Content inside a collapsible panel. Click the header to collapse.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="collapsible-panel expanded">
+          <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3 class="collapsible-title">
+              <span class="collapsible-icon">▶</span>
+              Advanced Options
+            </h3>
+          </div>
+          <div class="collapsible-content">
+            <div class="collapsible-body">
+              <div class="toggle-control">
+                <span>Enable experimental features</span>
+                <label class="toggle-switch">
+                  <input type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Message Panels Demo -->
+    <section class="demo-section">
+      <h2 class="demo-title">Message Panels</h2>
+      <div style="max-width: 600px; margin: 0 auto;">
+        <div class="info-panel">
+          <div class="panel-icon">ℹ️</div>
+          <div class="panel-message">
+            <div class="panel-message-title">Information</div>
+            <div class="panel-message-body">This is an informational message to guide the user.</div>
+          </div>
+        </div>
+
+        <div class="warning-panel">
+          <div class="panel-icon">⚠️</div>
+          <div class="panel-message">
+            <div class="panel-message-title">Warning</div>
+            <div class="panel-message-body">This action may affect simulation stability.</div>
+          </div>
+        </div>
+
+        <div class="error-panel">
+          <div class="panel-icon">❌</div>
+          <div class="panel-message">
+            <div class="panel-message-title">Error</div>
+            <div class="panel-message-body">Unable to initialize simulation. Please check your settings.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tab switching functionality
+    function switchTab(tabId) {
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // Add active class to selected tab
+      event.target.closest('.tab-button').classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    // Collapsible panel toggle
+    function toggleCollapsible(header) {
+      const panel = header.closest('.collapsible-panel');
+      panel.classList.toggle('expanded');
+    }
+
+    // Update slider values
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const valueDisplay = e.target.closest('.slider-control')?.querySelector('.slider-value');
+        if (valueDisplay) {
+          valueDisplay.textContent = e.target.value + (e.target.id.includes('slider1') ? 'x' : '');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

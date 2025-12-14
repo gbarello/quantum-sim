@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextInputControl Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="js/controls/styles/controls.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--bg-light);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .test-section h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+            font-size: 1rem;
+        }
+
+        .test-output {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border-radius: var(--border-radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            min-height: 3rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .demo-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .demo-actions button {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--accent-color);
+            background: var(--accent-color);
+            color: white;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .demo-actions button:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .demo-actions button.secondary {
+            background: transparent;
+            color: var(--accent-color);
+        }
+
+        .demo-actions button.secondary:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>TextInputControl Tests</h1>
+    <p>Comprehensive testing for TextInputControl component</p>
+
+    <!-- Test 1: Simple Text Input -->
+    <div class="test-section">
+        <h2>1. Simple Text Input</h2>
+        <p>Basic text input with placeholder</p>
+
+        <div id="test1-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test1GetValue()">Get Value</button>
+            <button class="secondary" onclick="test1SetValue()">Set Value to "Hello World"</button>
+            <button class="secondary" onclick="test1Clear()">Clear</button>
+        </div>
+
+        <div class="test-output" id="test1-output">Events will appear here...</div>
+    </div>
+
+    <!-- Test 2: Numeric Input with Min/Max -->
+    <div class="test-section">
+        <h2>2. Numeric Input with Min/Max</h2>
+        <p>Number input with range validation (0-10, step 0.1)</p>
+
+        <div id="test2-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test2GetValue()">Get Value</button>
+            <button class="secondary" onclick="test2SetValid()">Set to 5.5</button>
+            <button class="secondary" onclick="test2SetInvalid()">Try Set to 15 (should fail)</button>
+        </div>
+
+        <div class="test-output" id="test2-output">Events will appear here...</div>
+    </div>
+
+    <!-- Test 3: Input with Validation -->
+    <div class="test-section">
+        <h2>3. Custom Validation</h2>
+        <p>Email input with pattern validation</p>
+
+        <div id="test3-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test3GetValue()">Get Value</button>
+            <button class="secondary" onclick="test3SetValid()">Set Valid Email</button>
+            <button class="secondary" onclick="test3SetInvalid()">Try Invalid Email</button>
+        </div>
+
+        <div class="test-output" id="test3-output">Events will appear here...</div>
+    </div>
+
+    <!-- Test 4: Input with Unit Suffix -->
+    <div class="test-section">
+        <h2>4. Input with Unit Suffix</h2>
+        <p>Packet size input with unit suffix (σ)</p>
+
+        <div id="test4-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test4GetValue()">Get Value</button>
+            <button class="secondary" onclick="test4Increment()">Increment by 0.5</button>
+            <button class="secondary" onclick="test4Decrement()">Decrement by 0.5</button>
+        </div>
+
+        <div class="test-output" id="test4-output">Events will appear here...</div>
+    </div>
+
+    <!-- Test 5: Complex Validation Function -->
+    <div class="test-section">
+        <h2>5. Complex Validation Function</h2>
+        <p>Position coordinate with custom validation (must be between -5.0 and 5.0)</p>
+
+        <div id="test5-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test5GetValue()">Get Value</button>
+            <button class="secondary" onclick="test5SetBoundary()">Set to Boundary (5.0)</button>
+            <button class="secondary" onclick="test5TestInvalid()">Try Invalid (-10)</button>
+        </div>
+
+        <div class="test-output" id="test5-output">Events will appear here...</div>
+    </div>
+
+    <!-- Test 6: Enable/Disable -->
+    <div class="test-section">
+        <h2>6. Enable/Disable Control</h2>
+        <p>Test enabling and disabling the control</p>
+
+        <div id="test6-container"></div>
+
+        <div class="demo-actions">
+            <button onclick="test6Toggle()">Toggle Enable/Disable</button>
+            <button class="secondary" onclick="test6GetState()">Get State</button>
+        </div>
+
+        <div class="test-output" id="test6-output">Events will appear here...</div>
+    </div>
+
+    <script type="module">
+        import TextInputControl from './js/controls/types/TextInputControl.js';
+
+        // Utility function to log events
+        function logEvent(outputId, message) {
+            const output = document.getElementById(outputId);
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Test 1: Simple Text Input
+        const test1 = new TextInputControl({
+            label: 'Username',
+            description: 'Enter your username',
+            type: 'text',
+            placeholder: 'Enter username...',
+            value: ''
+        });
+
+        test1.on('change', (data) => {
+            logEvent('test1-output', `✓ CHANGE: value="${data.value}"`);
+        });
+
+        test1.on('input', (data) => {
+            logEvent('test1-output', `⌨ INPUT: value="${data.value}"`);
+        });
+
+        test1.on('invalid', (data) => {
+            logEvent('test1-output', `✗ INVALID: ${data.message}`);
+        });
+
+        test1.render(document.getElementById('test1-container'));
+
+        window.test1GetValue = () => {
+            logEvent('test1-output', `Current value: "${test1.getValue()}"`);
+        };
+
+        window.test1SetValue = () => {
+            test1.setValue("Hello World");
+            logEvent('test1-output', 'Set value to "Hello World"');
+        };
+
+        window.test1Clear = () => {
+            test1.setValue("");
+            logEvent('test1-output', 'Cleared value');
+        };
+
+        // Test 2: Numeric Input with Min/Max
+        const test2 = new TextInputControl({
+            label: 'Speed Multiplier',
+            description: 'Value must be between 0 and 10',
+            type: 'number',
+            value: 1.0,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            precision: 1
+        });
+
+        test2.on('change', (data) => {
+            logEvent('test2-output', `✓ CHANGE: value=${data.value} (type: ${typeof data.value})`);
+        });
+
+        test2.on('invalid', (data) => {
+            logEvent('test2-output', `✗ INVALID: ${data.message}`);
+        });
+
+        test2.render(document.getElementById('test2-container'));
+
+        window.test2GetValue = () => {
+            const val = test2.getValue();
+            logEvent('test2-output', `Current value: ${val} (type: ${typeof val})`);
+        };
+
+        window.test2SetValid = () => {
+            test2.setValue(5.5);
+            logEvent('test2-output', 'Set to 5.5 (valid)');
+        };
+
+        window.test2SetInvalid = () => {
+            test2.setValue(15);
+            logEvent('test2-output', 'Attempted to set to 15 (exceeds max)');
+        };
+
+        // Test 3: Email Validation
+        const test3 = new TextInputControl({
+            label: 'Email Address',
+            description: 'Must be a valid email format',
+            type: 'email',
+            placeholder: 'user@example.com',
+            pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+            value: ''
+        });
+
+        test3.on('change', (data) => {
+            logEvent('test3-output', `✓ CHANGE: value="${data.value}"`);
+        });
+
+        test3.on('invalid', (data) => {
+            logEvent('test3-output', `✗ INVALID: ${data.message}`);
+        });
+
+        test3.render(document.getElementById('test3-container'));
+
+        window.test3GetValue = () => {
+            logEvent('test3-output', `Current value: "${test3.getValue()}"`);
+        };
+
+        window.test3SetValid = () => {
+            test3.setValue("test@example.com");
+            logEvent('test3-output', 'Set to valid email');
+        };
+
+        window.test3SetInvalid = () => {
+            test3.setValue("not-an-email");
+            logEvent('test3-output', 'Attempted invalid email');
+        };
+
+        // Test 4: Input with Unit
+        const test4 = new TextInputControl({
+            label: 'Packet Size',
+            description: 'Wavepacket width in units of σ',
+            type: 'number',
+            value: 1.0,
+            min: 0.1,
+            max: 5.0,
+            step: 0.1,
+            precision: 1,
+            unit: 'σ'
+        });
+
+        test4.on('change', (data) => {
+            logEvent('test4-output', `✓ CHANGE: value=${data.value}σ`);
+        });
+
+        test4.on('invalid', (data) => {
+            logEvent('test4-output', `✗ INVALID: ${data.message}`);
+        });
+
+        test4.render(document.getElementById('test4-container'));
+
+        window.test4GetValue = () => {
+            logEvent('test4-output', `Current value: ${test4.getValue()}σ`);
+        };
+
+        window.test4Increment = () => {
+            const current = test4.getValue();
+            test4.setValue(current + 0.5);
+            logEvent('test4-output', `Incremented to ${test4.getValue()}σ`);
+        };
+
+        window.test4Decrement = () => {
+            const current = test4.getValue();
+            test4.setValue(current - 0.5);
+            logEvent('test4-output', `Decremented to ${test4.getValue()}σ`);
+        };
+
+        // Test 5: Complex Validation
+        const test5 = new TextInputControl({
+            label: 'Position X',
+            description: 'Position coordinate in physical units',
+            type: 'number',
+            value: 0.0,
+            precision: 2,
+            unit: 'units',
+            validate: (value) => {
+                const num = parseFloat(value);
+                if (isNaN(num)) {
+                    return { valid: false, message: 'Must be a number' };
+                }
+                if (num < -5.0) {
+                    return { valid: false, message: 'Position too negative (min: -5.0)' };
+                }
+                if (num > 5.0) {
+                    return { valid: false, message: 'Position too large (max: 5.0)' };
+                }
+                if (Math.abs(num) < 0.01 && num !== 0) {
+                    return { valid: false, message: 'Too close to zero (use exactly 0)' };
+                }
+                return { valid: true, message: '' };
+            }
+        });
+
+        test5.on('change', (data) => {
+            logEvent('test5-output', `✓ CHANGE: position=${data.value}`);
+        });
+
+        test5.on('invalid', (data) => {
+            logEvent('test5-output', `✗ INVALID: ${data.message}`);
+        });
+
+        test5.render(document.getElementById('test5-container'));
+
+        window.test5GetValue = () => {
+            logEvent('test5-output', `Current position: ${test5.getValue()}`);
+        };
+
+        window.test5SetBoundary = () => {
+            test5.setValue(5.0);
+            logEvent('test5-output', 'Set to boundary value (5.0)');
+        };
+
+        window.test5TestInvalid = () => {
+            test5.setValue(-10.0);
+            logEvent('test5-output', 'Attempted invalid position (-10.0)');
+        };
+
+        // Test 6: Enable/Disable
+        const test6 = new TextInputControl({
+            label: 'Controllable Input',
+            description: 'Test enable/disable functionality',
+            type: 'text',
+            placeholder: 'Type something...',
+            value: 'Test value'
+        });
+
+        test6.on('change', (data) => {
+            logEvent('test6-output', `✓ CHANGE: value="${data.value}"`);
+        });
+
+        test6.render(document.getElementById('test6-container'));
+
+        window.test6Toggle = () => {
+            if (test6.isEnabled) {
+                test6.disable();
+                logEvent('test6-output', 'Control DISABLED');
+            } else {
+                test6.enable();
+                logEvent('test6-output', 'Control ENABLED');
+            }
+        };
+
+        window.test6GetState = () => {
+            logEvent('test6-output', `State: ${test6.isEnabled ? 'ENABLED' : 'DISABLED'}, Value: "${test6.getValue()}"`);
+        };
+
+        // Initial log messages
+        logEvent('test1-output', 'Test 1 initialized - try typing!');
+        logEvent('test2-output', 'Test 2 initialized - numeric validation active');
+        logEvent('test3-output', 'Test 3 initialized - email pattern validation');
+        logEvent('test4-output', 'Test 4 initialized - with unit suffix');
+        logEvent('test5-output', 'Test 5 initialized - complex custom validation');
+        logEvent('test6-output', 'Test 6 initialized - enable/disable testing');
+    </script>
+</body>
+</html>

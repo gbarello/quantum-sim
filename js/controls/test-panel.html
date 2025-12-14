@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ControlPanel Test Suite</title>
+
+  <!-- Load base styles -->
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="./styles/controls.css">
+  <link rel="stylesheet" href="./styles/panels.css">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--bg-light);
+    }
+
+    h1 {
+      color: var(--primary-color);
+      border-bottom: 3px solid var(--primary-color);
+      padding-bottom: 10px;
+    }
+
+    h2 {
+      color: var(--primary-dark);
+      margin-top: 40px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .test-description {
+      background: #f0f7ff;
+      padding: 15px;
+      border-left: 4px solid var(--accent-color);
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .test-container {
+      min-height: 300px;
+      border: 2px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid var(--border-color);
+    }
+
+    .actions button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .actions button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .actions button.secondary {
+      background: var(--accent-color);
+    }
+
+    .actions button.danger {
+      background: var(--secondary-color);
+    }
+
+    .log {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry.info { color: #0066cc; }
+    .log-entry.success { color: #00aa00; }
+    .log-entry.error { color: #cc0000; }
+
+    .status {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Two-column layout for side-by-side examples */
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>ControlPanel Test Suite</h1>
+  <p>Interactive demonstrations of the ControlPanel class functionality.</p>
+
+  <!-- Test 1: Basic Panel with Multiple Controls -->
+  <div class="test-section">
+    <h2>Test 1: Basic Panel with Multiple Controls</h2>
+    <div class="test-description">
+      <strong>Purpose:</strong> Demonstrates creating a panel with multiple different control types.
+      <br><strong>Features:</strong> Slider, button, select, and display controls working together.
+    </div>
+
+    <div id="test1-container" class="test-container"></div>
+
+    <div class="actions">
+      <button onclick="test1.create()">Create Panel</button>
+      <button onclick="test1.getValues()" class="secondary">Get Values</button>
+      <button onclick="test1.destroy()" class="danger">Destroy Panel</button>
+    </div>
+
+    <div id="test1-log" class="log"></div>
+  </div>
+
+  <!-- Test 2: Collapsible Panel -->
+  <div class="test-section">
+    <h2>Test 2: Collapsible Panel</h2>
+    <div class="test-description">
+      <strong>Purpose:</strong> Tests collapsible panel functionality with smooth animations.
+      <br><strong>Features:</strong> Toggle button, expand/collapse methods, state management.
+    </div>
+
+    <div id="test2-container" class="test-container"></div>
+
+    <div class="actions">
+      <button onclick="test2.create()">Create Collapsible Panel</button>
+      <button onclick="test2.toggle()" class="secondary">Toggle</button>
+      <button onclick="test2.expand()" class="secondary">Expand</button>
+      <button onclick="test2.collapse()" class="secondary">Collapse</button>
+      <button onclick="test2.destroy()" class="danger">Destroy</button>
+    </div>
+
+    <div id="test2-log" class="log"></div>
+  </div>
+
+  <!-- Test 3: Dynamic Control Management -->
+  <div class="test-section">
+    <h2>Test 3: Dynamic Control Management</h2>
+    <div class="test-description">
+      <strong>Purpose:</strong> Demonstrates adding and removing controls dynamically.
+      <br><strong>Features:</strong> addControl(), removeControl(), getControl() methods.
+    </div>
+
+    <div id="test3-container" class="test-container"></div>
+
+    <div class="actions">
+      <button onclick="test3.create()">Create Empty Panel</button>
+      <button onclick="test3.addSlider()" class="secondary">Add Slider</button>
+      <button onclick="test3.addButton()" class="secondary">Add Button</button>
+      <button onclick="test3.addDisplay()" class="secondary">Add Display</button>
+      <button onclick="test3.removeControl()" class="danger">Remove Last Control</button>
+      <button onclick="test3.destroy()" class="danger">Destroy Panel</button>
+    </div>
+
+    <div id="test3-log" class="log"></div>
+  </div>
+
+  <!-- Test 4: Initial Conditions Tab (from defaultConfig.js) -->
+  <div class="test-section">
+    <h2>Test 4: Initial Conditions Tab (from Config)</h2>
+    <div class="test-description">
+      <strong>Purpose:</strong> Creates a panel from the Initial Conditions tab configuration.
+      <br><strong>Features:</strong> Demonstrates real-world usage with actual quantum playground controls.
+    </div>
+
+    <div id="test4-container" class="test-container"></div>
+
+    <div class="actions">
+      <button onclick="test4.create()">Create Initial Conditions Panel</button>
+      <button onclick="test4.getValues()" class="secondary">Get All Values</button>
+      <button onclick="test4.disableAll()" class="secondary">Disable All</button>
+      <button onclick="test4.enableAll()" class="secondary">Enable All</button>
+      <button onclick="test4.destroy()" class="danger">Destroy Panel</button>
+    </div>
+
+    <div id="test4-log" class="log"></div>
+  </div>
+
+  <!-- Test 5: Multiple Panels Side by Side -->
+  <div class="test-section">
+    <h2>Test 5: Multiple Panels (Side by Side)</h2>
+    <div class="test-description">
+      <strong>Purpose:</strong> Shows multiple independent panels working together.
+      <br><strong>Features:</strong> Two panels with different controls, demonstrating modularity.
+    </div>
+
+    <div class="two-column">
+      <div id="test5-container-1" class="test-container" style="min-height: 200px;"></div>
+      <div id="test5-container-2" class="test-container" style="min-height: 200px;"></div>
+    </div>
+
+    <div class="actions">
+      <button onclick="test5.create()">Create Both Panels</button>
+      <button onclick="test5.destroy()" class="danger">Destroy Both</button>
+    </div>
+
+    <div id="test5-log" class="log"></div>
+  </div>
+
+  <!-- Load modules and test scripts -->
+  <script type="module">
+    import { ControlRegistry } from './ControlRegistry.js';
+    import { ControlPanel } from './ControlPanel.js';
+    import { SliderControl } from './types/SliderControl.js';
+    import { ButtonControl } from './types/ButtonControl.js';
+    import { SelectControl } from './types/SelectControl.js';
+    import { DisplayControl } from './types/DisplayControl.js';
+    import { RadioControl } from './types/RadioControl.js';
+
+    // Register all control types
+    ControlRegistry.register('slider', SliderControl);
+    ControlRegistry.register('button', ButtonControl);
+    ControlRegistry.register('select', SelectControl);
+    ControlRegistry.register('display', DisplayControl);
+    ControlRegistry.register('radio', RadioControl);
+
+    // Helper function to log messages
+    function log(testId, message, type = 'info') {
+      const logEl = document.getElementById(`${testId}-log`);
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // =================================================================
+    // Test 1: Basic Panel with Multiple Controls
+    // =================================================================
+    window.test1 = {
+      panel: null,
+
+      create() {
+        if (this.panel) {
+          log('test1', 'Destroying existing panel first...', 'info');
+          this.destroy();
+        }
+
+        try {
+          this.panel = new ControlPanel({
+            id: 'test1-panel',
+            title: 'Basic Controls Panel',
+            icon: '⚙️',
+            controls: [
+              {
+                type: 'slider',
+                id: 'speed-slider',
+                label: 'Speed',
+                min: 0,
+                max: 100,
+                defaultValue: 50,
+                step: 1,
+                onChange: (data) => {
+                  log('test1', `Speed changed to: ${data.value}`, 'info');
+                  const display = this.panel.getControl('value-display');
+                  if (display) {
+                    display.setValue(data.value);
+                  }
+                }
+              },
+              {
+                type: 'select',
+                id: 'mode-select',
+                label: 'Mode',
+                options: [
+                  { value: 'view', label: 'View' },
+                  { value: 'measure', label: 'Measure' },
+                  { value: 'add-potential', label: 'Add Potential' }
+                ],
+                defaultValue: 'view',
+                onChange: (data) => {
+                  log('test1', `Mode changed to: ${data.value}`, 'info');
+                }
+              },
+              {
+                type: 'button',
+                id: 'reset-button',
+                label: 'Reset',
+                onClick: () => {
+                  log('test1', 'Reset button clicked!', 'success');
+                  const slider = this.panel.getControl('speed-slider');
+                  if (slider) {
+                    slider.setValue(50);
+                  }
+                }
+              },
+              {
+                type: 'display',
+                id: 'value-display',
+                label: 'Current Value',
+                defaultValue: '50'
+              }
+            ]
+          });
+
+          const container = document.getElementById('test1-container');
+          this.panel.render(container);
+
+          log('test1', `Panel created with ${this.panel.getControlCount()} controls`, 'success');
+        } catch (error) {
+          log('test1', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      getValues() {
+        if (!this.panel) {
+          log('test1', 'No panel to get values from', 'error');
+          return;
+        }
+
+        const values = this.panel.getValues();
+        log('test1', `Panel values: ${JSON.stringify(values)}`, 'info');
+      },
+
+      destroy() {
+        if (this.panel) {
+          this.panel.destroy();
+          this.panel = null;
+          log('test1', 'Panel destroyed', 'success');
+        }
+      }
+    };
+
+    // =================================================================
+    // Test 2: Collapsible Panel
+    // =================================================================
+    window.test2 = {
+      panel: null,
+
+      create() {
+        if (this.panel) {
+          this.destroy();
+        }
+
+        try {
+          this.panel = new ControlPanel({
+            id: 'test2-panel',
+            title: 'Collapsible Panel',
+            icon: '📦',
+            collapsible: true,
+            collapsed: false,
+            controls: [
+              {
+                type: 'slider',
+                id: 'opacity-slider',
+                label: 'Opacity',
+                min: 0,
+                max: 100,
+                defaultValue: 100,
+                onChange: (data) => {
+                  log('test2', `Opacity: ${data.value}%`, 'info');
+                }
+              },
+              {
+                type: 'radio',
+                id: 'alignment-radio',
+                label: 'Alignment',
+                options: [
+                  { value: 'left', label: 'Left' },
+                  { value: 'center', label: 'Center' },
+                  { value: 'right', label: 'Right' }
+                ],
+                defaultValue: 'center',
+                onChange: (data) => {
+                  log('test2', `Alignment: ${data.value}`, 'info');
+                }
+              }
+            ]
+          });
+
+          const container = document.getElementById('test2-container');
+          this.panel.render(container);
+
+          log('test2', 'Collapsible panel created (expanded)', 'success');
+        } catch (error) {
+          log('test2', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      toggle() {
+        if (!this.panel || !this.panel.isCollapsible()) {
+          log('test2', 'Panel not collapsible', 'error');
+          return;
+        }
+
+        this.panel.toggle();
+        const state = this.panel.isCollapsed() ? 'collapsed' : 'expanded';
+        log('test2', `Panel toggled to: ${state}`, 'info');
+      },
+
+      expand() {
+        if (!this.panel) return;
+        this.panel.expand();
+        log('test2', 'Panel expanded', 'info');
+      },
+
+      collapse() {
+        if (!this.panel) return;
+        this.panel.collapse();
+        log('test2', 'Panel collapsed', 'info');
+      },
+
+      destroy() {
+        if (this.panel) {
+          this.panel.destroy();
+          this.panel = null;
+          log('test2', 'Panel destroyed', 'success');
+        }
+      }
+    };
+
+    // =================================================================
+    // Test 3: Dynamic Control Management
+    // =================================================================
+    window.test3 = {
+      panel: null,
+      controlCounter: 0,
+
+      create() {
+        if (this.panel) {
+          this.destroy();
+        }
+
+        try {
+          this.panel = new ControlPanel({
+            id: 'test3-panel',
+            title: 'Dynamic Controls',
+            icon: '🔧'
+          });
+
+          const container = document.getElementById('test3-container');
+          this.panel.render(container);
+
+          this.controlCounter = 0;
+          log('test3', 'Empty panel created', 'success');
+        } catch (error) {
+          log('test3', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      addSlider() {
+        if (!this.panel) {
+          log('test3', 'Create panel first', 'error');
+          return;
+        }
+
+        try {
+          this.controlCounter++;
+          const control = ControlRegistry.create({
+            type: 'slider',
+            id: `dynamic-slider-${this.controlCounter}`,
+            label: `Slider ${this.controlCounter}`,
+            min: 0,
+            max: 100,
+            defaultValue: 50
+          });
+
+          this.panel.addControl(control);
+          log('test3', `Added slider (${this.panel.getControlCount()} controls)`, 'success');
+        } catch (error) {
+          log('test3', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      addButton() {
+        if (!this.panel) {
+          log('test3', 'Create panel first', 'error');
+          return;
+        }
+
+        try {
+          this.controlCounter++;
+          const control = ControlRegistry.create({
+            type: 'button',
+            id: `dynamic-button-${this.controlCounter}`,
+            label: `Button ${this.controlCounter}`,
+            onClick: () => {
+              log('test3', `Button ${this.controlCounter} clicked!`, 'info');
+            }
+          });
+
+          this.panel.addControl(control);
+          log('test3', `Added button (${this.panel.getControlCount()} controls)`, 'success');
+        } catch (error) {
+          log('test3', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      addDisplay() {
+        if (!this.panel) {
+          log('test3', 'Create panel first', 'error');
+          return;
+        }
+
+        try {
+          this.controlCounter++;
+          const control = ControlRegistry.create({
+            type: 'display',
+            id: `dynamic-display-${this.controlCounter}`,
+            label: `Display ${this.controlCounter}`,
+            defaultValue: `Value ${this.controlCounter}`
+          });
+
+          this.panel.addControl(control);
+          log('test3', `Added display (${this.panel.getControlCount()} controls)`, 'success');
+        } catch (error) {
+          log('test3', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      removeControl() {
+        if (!this.panel || this.panel.getControlCount() === 0) {
+          log('test3', 'No controls to remove', 'error');
+          return;
+        }
+
+        const controls = this.panel.getAllControls();
+        const lastControl = controls[controls.length - 1];
+
+        if (this.panel.removeControl(lastControl.id)) {
+          log('test3', `Removed control '${lastControl.id}' (${this.panel.getControlCount()} remaining)`, 'success');
+        }
+      },
+
+      destroy() {
+        if (this.panel) {
+          this.panel.destroy();
+          this.panel = null;
+          this.controlCounter = 0;
+          log('test3', 'Panel destroyed', 'success');
+        }
+      }
+    };
+
+    // =================================================================
+    // Test 4: Initial Conditions Tab (simplified)
+    // =================================================================
+    window.test4 = {
+      panel: null,
+
+      create() {
+        if (this.panel) {
+          this.destroy();
+        }
+
+        try {
+          this.panel = new ControlPanel({
+            id: 'initial-conditions',
+            title: 'Initial Conditions',
+            icon: '🎯',
+            controls: [
+              {
+                type: 'slider',
+                id: 'packet-size',
+                label: 'Packet Size',
+                min: 0.5,
+                max: 2.0,
+                defaultValue: 1.0,
+                step: 0.1,
+                onChange: (data) => {
+                  log('test4', `Packet size: ${data.value}`, 'info');
+                }
+              },
+              {
+                type: 'display',
+                id: 'position-display',
+                label: 'Position',
+                defaultValue: '(0.50, 0.50)'
+              },
+              {
+                type: 'display',
+                id: 'momentum-display',
+                label: 'Momentum',
+                defaultValue: '(0.00, 0.00)'
+              },
+              {
+                type: 'button',
+                id: 'reset-button',
+                label: 'Reset',
+                onClick: () => {
+                  log('test4', 'Reset to default initial conditions', 'success');
+                }
+              }
+            ]
+          });
+
+          const container = document.getElementById('test4-container');
+          this.panel.render(container);
+
+          log('test4', 'Initial Conditions panel created', 'success');
+        } catch (error) {
+          log('test4', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      getValues() {
+        if (!this.panel) {
+          log('test4', 'No panel created', 'error');
+          return;
+        }
+
+        const values = this.panel.getValues();
+        log('test4', `All values: ${JSON.stringify(values, null, 2)}`, 'info');
+      },
+
+      disableAll() {
+        if (!this.panel) return;
+        this.panel.disableAll();
+        log('test4', 'All controls disabled', 'info');
+      },
+
+      enableAll() {
+        if (!this.panel) return;
+        this.panel.enableAll();
+        log('test4', 'All controls enabled', 'info');
+      },
+
+      destroy() {
+        if (this.panel) {
+          this.panel.destroy();
+          this.panel = null;
+          log('test4', 'Panel destroyed', 'success');
+        }
+      }
+    };
+
+    // =================================================================
+    // Test 5: Multiple Panels
+    // =================================================================
+    window.test5 = {
+      panel1: null,
+      panel2: null,
+
+      create() {
+        if (this.panel1 || this.panel2) {
+          this.destroy();
+        }
+
+        try {
+          // Panel 1: Simulation Controls
+          this.panel1 = new ControlPanel({
+            id: 'simulation-panel',
+            title: 'Simulation',
+            icon: '▶️',
+            collapsible: true,
+            controls: [
+              {
+                type: 'button',
+                id: 'play-pause',
+                label: 'Play',
+                onClick: () => log('test5', 'Play/Pause clicked', 'info')
+              },
+              {
+                type: 'slider',
+                id: 'time-scale',
+                label: 'Speed',
+                min: 0.1,
+                max: 2.0,
+                defaultValue: 1.0,
+                step: 0.1
+              }
+            ]
+          });
+
+          // Panel 2: Visualization
+          this.panel2 = new ControlPanel({
+            id: 'visualization-panel',
+            title: 'Visualization',
+            icon: '👁️',
+            collapsible: true,
+            controls: [
+              {
+                type: 'radio',
+                id: 'viz-mode',
+                label: 'Mode',
+                options: [
+                  { value: 'full', label: 'Full (Complex)' },
+                  { value: 'probability', label: 'Probability' },
+                  { value: 'phase', label: 'Phase' }
+                ],
+                defaultValue: 'full'
+              }
+            ]
+          });
+
+          this.panel1.render(document.getElementById('test5-container-1'));
+          this.panel2.render(document.getElementById('test5-container-2'));
+
+          log('test5', 'Both panels created successfully', 'success');
+        } catch (error) {
+          log('test5', `Error: ${error.message}`, 'error');
+        }
+      },
+
+      destroy() {
+        if (this.panel1) {
+          this.panel1.destroy();
+          this.panel1 = null;
+        }
+        if (this.panel2) {
+          this.panel2.destroy();
+          this.panel2 = null;
+        }
+        log('test5', 'Both panels destroyed', 'success');
+      }
+    };
+
+    // Initialize logging
+    log('test1', 'Test suite loaded. Click "Create Panel" to begin.', 'success');
+    log('test2', 'Test suite loaded. Click "Create Collapsible Panel" to begin.', 'success');
+    log('test3', 'Test suite loaded. Click "Create Empty Panel" to begin.', 'success');
+    log('test4', 'Test suite loaded. Click "Create Initial Conditions Panel" to begin.', 'success');
+    log('test5', 'Test suite loaded. Click "Create Both Panels" to begin.', 'success');
+  </script>
+</body>
+</html>

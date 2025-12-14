@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ButtonControl Test</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../styles/controls.css">
+  <style>
+    body {
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: var(--text-color);
+    }
+    .status {
+      padding: 0.5rem;
+      margin-top: 1rem;
+      border-radius: var(--border-radius-sm);
+      background-color: var(--bg-light);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>ButtonControl Tests</h1>
+
+  <div class="test-section">
+    <h2>Test 1: Primary Button with Icon</h2>
+    <div id="test1"></div>
+    <div class="status" id="status1">Click count: 0</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Play/Pause Toggle</h2>
+    <div id="test2"></div>
+    <div class="status" id="status2">State: Paused</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Secondary Full Width</h2>
+    <div id="test3"></div>
+    <div class="status" id="status3">Last clicked: Never</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 4: Multiple Variants</h2>
+    <div id="test4"></div>
+    <div class="status" id="status4">Last variant clicked: None</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 5: Enable/Disable Control</h2>
+    <div id="test5"></div>
+    <button id="toggle-enable" style="margin-top: 1rem;">Toggle Enable State</button>
+    <div class="status" id="status5">Button is enabled</div>
+  </div>
+
+  <script type="module">
+    import { ButtonControl } from './ButtonControl.js';
+    import { ControlRegistry } from '../ControlRegistry.js';
+
+    // Test 1: Basic button with icon and click counter
+    let clickCount = 0;
+    const btn1 = new ButtonControl({
+      id: 'test-btn-1',
+      label: 'Test Button 1',
+      text: 'Click Me',
+      icon: '👆',
+      variant: 'primary',
+      onClick: () => {
+        clickCount++;
+        document.getElementById('status1').textContent = `Click count: ${clickCount}`;
+      }
+    });
+    btn1.render(document.getElementById('test1'));
+
+    // Test 2: Play/Pause toggle button
+    let isPlaying = false;
+    const btn2 = new ButtonControl({
+      id: 'play-pause-btn',
+      label: 'Play/Pause',
+      text: 'Play',
+      icon: '▶',
+      variant: 'primary',
+      fullWidth: true,
+      onClick: (btn) => {
+        isPlaying = !isPlaying;
+        btn.setText(isPlaying ? 'Pause' : 'Play');
+        btn.setIcon(isPlaying ? '⏸' : '▶');
+        document.getElementById('status2').textContent =
+          `State: ${isPlaying ? 'Playing' : 'Paused'}`;
+      }
+    });
+    btn2.render(document.getElementById('test2'));
+
+    // Test 3: Secondary full width button
+    const btn3 = new ButtonControl({
+      id: 'test-btn-3',
+      label: 'Reset Button',
+      text: 'Reset Simulation',
+      icon: '↻',
+      variant: 'secondary',
+      fullWidth: true,
+      onClick: () => {
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('status3').textContent = `Last clicked: ${now}`;
+      }
+    });
+    btn3.render(document.getElementById('test3'));
+
+    // Test 4: Multiple variants
+    const variants = ['primary', 'secondary', 'outline', 'ghost', 'success'];
+    const test4Container = document.getElementById('test4');
+    test4Container.style.display = 'flex';
+    test4Container.style.gap = '0.5rem';
+    test4Container.style.flexWrap = 'wrap';
+
+    variants.forEach(variant => {
+      const btn = new ButtonControl({
+        id: `test-btn-${variant}`,
+        label: `${variant} button`,
+        text: variant.charAt(0).toUpperCase() + variant.slice(1),
+        variant: variant,
+        onClick: () => {
+          document.getElementById('status4').textContent =
+            `Last variant clicked: ${variant}`;
+        }
+      });
+      btn.render(test4Container);
+    });
+
+    // Test 5: Enable/Disable
+    const btn5 = new ButtonControl({
+      id: 'test-btn-5',
+      label: 'Disabled Test Button',
+      text: 'Try to Click Me',
+      icon: '🔒',
+      variant: 'primary',
+      onClick: () => {
+        alert('Button was clicked!');
+      }
+    });
+    btn5.render(document.getElementById('test5'));
+
+    document.getElementById('toggle-enable').addEventListener('click', () => {
+      if (btn5.isEnabled()) {
+        btn5.disable();
+        btn5.setIcon('🔒');
+        document.getElementById('status5').textContent = 'Button is disabled';
+      } else {
+        btn5.enable();
+        btn5.setIcon('🔓');
+        document.getElementById('status5').textContent = 'Button is enabled';
+      }
+    });
+
+    // Test ControlRegistry factory creation
+    console.log('Testing ControlRegistry.create()...');
+    const factoryBtn = ControlRegistry.create({
+      type: 'button',
+      id: 'factory-test',
+      label: 'Factory Created Button',
+      text: 'From Factory',
+      icon: '🏭',
+      variant: 'success',
+      onClick: () => console.log('Factory button clicked!')
+    });
+    console.log('Factory button created successfully:', factoryBtn);
+
+    // Verify registration
+    console.log('Registered types:', ControlRegistry.getTypes());
+    console.log('Has button type:', ControlRegistry.has('button'));
+  </script>
+</body>
+</html>

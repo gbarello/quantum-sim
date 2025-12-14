@@ -1,0 +1,495 @@
+/* ============================================
+   Control Panels - Container Styles
+   Panel layout, positioning, and structural styles
+   ============================================ */
+
+/* ============================================
+   Main Control Panel Container
+   ============================================ */
+.control-panel-container {
+  position: relative;
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-base);
+}
+
+/* Panel header (if needed for title/actions) */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--primary-color);
+  color: var(--text-on-dark);
+  border-bottom: 2px solid var(--primary-dark);
+}
+
+.panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0;
+}
+
+.panel-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* ============================================
+   Panel Body
+   ============================================ */
+.panel-body {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 70vh; /* Prevent excessive height */
+}
+
+/* Custom scrollbar styling */
+.panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel-body::-webkit-scrollbar-track {
+  background-color: var(--bg-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background-color: var(--border-dark);
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.panel-body::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-color);
+}
+
+/* Firefox scrollbar */
+.panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) var(--bg-color);
+}
+
+/* ============================================
+   Panel Footer (optional)
+   ============================================ */
+.panel-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+/* ============================================
+   Collapsible Panel
+   ============================================ */
+.collapsible-panel {
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+  transition: border-color var(--transition-base);
+}
+
+.collapsible-panel:last-child {
+  margin-bottom: 0;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-base);
+  min-height: var(--touch-target-min);
+}
+
+.collapsible-header:hover {
+  background-color: var(--bg-dark);
+}
+
+.collapsible-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.collapsible-icon {
+  font-size: 0.875em;
+  transition: transform var(--transition-base);
+  color: var(--text-light);
+}
+
+.collapsible-panel.expanded .collapsible-icon {
+  transform: rotate(90deg);
+}
+
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-slow);
+}
+
+.collapsible-panel.expanded .collapsible-content {
+  max-height: 1000px; /* Large enough for content */
+}
+
+.collapsible-body {
+  padding: var(--spacing-lg);
+  background-color: var(--bg-light);
+}
+
+/* ============================================
+   Section Divider
+   ============================================ */
+.panel-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.panel-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* ============================================
+   Nested Panel (Sub-panel)
+   ============================================ */
+.nested-panel {
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.nested-panel-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ============================================
+   Panel States
+   ============================================ */
+.panel-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.panel-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ============================================
+   Info/Warning/Error Panels
+   ============================================ */
+.info-panel,
+.warning-panel,
+.error-panel {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.info-panel {
+  background-color: rgba(52, 152, 219, 0.1);
+  border-left-color: var(--accent-color);
+}
+
+.warning-panel {
+  background-color: rgba(243, 156, 18, 0.1);
+  border-left-color: var(--warning-color);
+}
+
+.error-panel {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-left-color: var(--secondary-color);
+}
+
+.panel-icon {
+  font-size: var(--font-size-xl);
+  flex-shrink: 0;
+}
+
+.info-panel .panel-icon {
+  color: var(--accent-color);
+}
+
+.warning-panel .panel-icon {
+  color: var(--warning-color);
+}
+
+.error-panel .panel-icon {
+  color: var(--secondary-color);
+}
+
+.panel-message {
+  flex: 1;
+}
+
+.panel-message-title {
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.panel-message-body {
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ============================================
+   Responsive Layout Variants
+   ============================================ */
+
+/* Side panel layout (desktop) */
+@media (min-width: 769px) {
+  .layout-side-panel {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: var(--spacing-lg);
+    align-items: start;
+  }
+
+  .layout-side-panel .control-panel-container {
+    position: sticky;
+    top: var(--spacing-lg);
+    max-height: calc(100vh - var(--spacing-xl) * 2);
+  }
+
+  .layout-side-panel .panel-body {
+    max-height: calc(100vh - 200px);
+  }
+}
+
+/* Wide side panel for more controls */
+@media (min-width: 1200px) {
+  .layout-side-panel-wide {
+    grid-template-columns: 400px 1fr;
+  }
+}
+
+/* Top panel layout (mobile and tablet) */
+@media (max-width: 768px) {
+  .control-panel-container {
+    width: 100%;
+  }
+
+  .panel-body {
+    max-height: 50vh;
+  }
+
+  .panel-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .panel-title {
+    font-size: var(--font-size-base);
+  }
+
+  .panel-body {
+    padding: var(--spacing-md);
+  }
+
+  .panel-footer {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .collapsible-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .collapsible-body {
+    padding: var(--spacing-md);
+  }
+}
+
+/* ============================================
+   Floating/Overlay Panel
+   ============================================ */
+.floating-panel {
+  position: fixed;
+  z-index: 1000;
+  max-width: 400px;
+  max-height: 80vh;
+  box-shadow: var(--shadow-xl);
+}
+
+/* Default floating position (top-right) */
+.floating-panel.position-top-right {
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+}
+
+.floating-panel.position-top-left {
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+}
+
+.floating-panel.position-bottom-right {
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+}
+
+.floating-panel.position-bottom-left {
+  bottom: var(--spacing-lg);
+  left: var(--spacing-lg);
+}
+
+/* Draggable panel styles */
+.draggable-panel {
+  cursor: move;
+}
+
+.draggable-panel .panel-header {
+  cursor: grab;
+}
+
+.draggable-panel .panel-header:active {
+  cursor: grabbing;
+}
+
+/* ============================================
+   Panel Animations
+   ============================================ */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel-animate-in-right {
+  animation: slideInFromRight var(--transition-slow);
+}
+
+.panel-animate-in-left {
+  animation: slideInFromLeft var(--transition-slow);
+}
+
+.panel-animate-in-top {
+  animation: slideInFromTop var(--transition-slow);
+}
+
+.panel-animate-fade {
+  animation: fadeIn var(--transition-base);
+}
+
+/* ============================================
+   Compact Panel Mode
+   ============================================ */
+.panel-compact .panel-body {
+  padding: var(--spacing-md);
+}
+
+.panel-compact .control-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.panel-compact .panel-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ============================================
+   Dark Mode Support (Future)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  /* Placeholder for dark mode styles */
+  /* Can be implemented when dark mode is added to the main app */
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+  .control-panel-container {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+
+  .panel-body {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .collapsible-content {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}

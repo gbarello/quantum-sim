@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ButtonControl Test Runner</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../styles/controls.css">
+  <style>
+    body {
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      font-family: var(--font-mono);
+    }
+    h1 {
+      color: var(--text-color);
+    }
+    #output {
+      background-color: var(--bg-dark);
+      color: var(--text-on-dark);
+      padding: 1rem;
+      border-radius: var(--border-radius-md);
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .summary {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: var(--border-radius-md);
+      font-weight: 600;
+    }
+    .summary.pass {
+      background-color: var(--success-color);
+      color: white;
+    }
+    .summary.fail {
+      background-color: var(--danger-color);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>ButtonControl Unit Tests</h1>
+  <div id="output">Running tests...</div>
+  <div id="summary"></div>
+
+  <script type="module">
+    // Capture console output
+    const output = document.getElementById('output');
+    const originalLog = console.log;
+    const originalError = console.error;
+    const logs = [];
+
+    console.log = function(...args) {
+      const msg = args.join(' ');
+      logs.push(msg);
+      output.textContent = logs.join('\n');
+      originalLog.apply(console, args);
+    };
+
+    console.error = function(...args) {
+      const msg = args.join(' ');
+      logs.push(msg);
+      output.textContent = logs.join('\n');
+      originalError.apply(console, args);
+    };
+
+    // Run tests
+    import { results } from './ButtonControl.test.js';
+
+    // Wait a bit for all tests to complete
+    setTimeout(() => {
+      const summary = document.getElementById('summary');
+      const total = results.passed + results.failed;
+      const passRate = ((results.passed / total) * 100).toFixed(1);
+
+      summary.className = 'summary ' + (results.failed === 0 ? 'pass' : 'fail');
+      summary.innerHTML = `
+        <div>Test Results: ${results.passed} / ${total} passed (${passRate}%)</div>
+        ${results.failed > 0 ? `<div>Failed: ${results.failed}</div>` : ''}
+      `;
+
+      // Restore console
+      console.log = originalLog;
+      console.error = originalError;
+    }, 500);
+  </script>
+</body>
+</html>

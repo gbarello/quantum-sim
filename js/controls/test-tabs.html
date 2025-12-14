@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabManager Test</title>
+  <style>
+    /* CSS Variables (from main app) */
+    :root {
+      --bg-color: #f5f7fa;
+      --bg-light: #ffffff;
+      --text-color: #2c3e50;
+      --text-light: #7f8c8d;
+      --text-on-dark: #ffffff;
+      --border-color: #dcdde1;
+      --border-dark: #95a5a6;
+      --accent-color: #3498db;
+      --accent-hover: #2980b9;
+      --primary-dark: #2c3e50;
+      --secondary-color: #e74c3c;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-size-base: 14px;
+      --font-size-sm: 12px;
+      --font-size-xs: 11px;
+      --font-size-lg: 16px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 12px;
+      --spacing-lg: 16px;
+      --spacing-xl: 24px;
+      --spacing-xxl: 32px;
+      --border-radius-sm: 4px;
+      --border-radius-md: 8px;
+      --border-radius-lg: 12px;
+      --border-radius-full: 9999px;
+      --transition-fast: 150ms ease;
+      --transition-base: 250ms ease;
+      --touch-target-min: 44px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    h1 {
+      margin-top: 0;
+      color: var(--primary-dark);
+    }
+
+    h2 {
+      color: var(--accent-color);
+      margin-top: 2rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+
+    .demo-container {
+      height: 400px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .panel-content {
+      padding: var(--spacing-lg);
+    }
+
+    .panel-content h3 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
+
+    .panel-content p {
+      line-height: 1.6;
+      color: var(--text-color);
+    }
+
+    .panel-content .info-grid {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: var(--spacing-sm);
+      margin: var(--spacing-md) 0;
+    }
+
+    .panel-content .info-label {
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .panel-content .info-value {
+      color: var(--text-color);
+      font-family: 'Courier New', monospace;
+    }
+
+    .controls {
+      display: flex;
+      gap: var(--spacing-md);
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      transition: background var(--transition-base);
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .log {
+      background: var(--primary-dark);
+      color: var(--text-on-dark);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-sm);
+      font-family: 'Courier New', monospace;
+      font-size: var(--font-size-sm);
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+
+    .log-entry {
+      margin: 2px 0;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: var(--text-light);
+      margin-right: var(--spacing-sm);
+    }
+
+    .log-event {
+      color: #3498db;
+      font-weight: 600;
+    }
+
+    .instructions {
+      background: #e3f2fd;
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius-sm);
+      margin: var(--spacing-lg) 0;
+      border-left: 4px solid var(--accent-color);
+    }
+
+    .instructions h4 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
+
+    .instructions ul {
+      margin: var(--spacing-sm) 0;
+      padding-left: 1.5rem;
+    }
+
+    .instructions li {
+      margin: var(--spacing-xs) 0;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: var(--border-radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+
+  <!-- Import tabs CSS -->
+  <link rel="stylesheet" href="./styles/tabs.css">
+</head>
+<body>
+  <div class="test-container">
+    <h1>TabManager Test Suite</h1>
+    <p>Testing the TabManager component with three tabs from defaultConfig.js</p>
+
+    <div class="instructions">
+      <h4>Keyboard Navigation Instructions:</h4>
+      <ul>
+        <li><strong>Tab key:</strong> Focus the tab buttons</li>
+        <li><strong>Arrow Left/Up:</strong> Navigate to previous tab</li>
+        <li><strong>Arrow Right/Down:</strong> Navigate to next tab</li>
+        <li><strong>Home:</strong> Jump to first tab</li>
+        <li><strong>End:</strong> Jump to last tab</li>
+        <li><strong>Enter/Space:</strong> Activate focused tab</li>
+      </ul>
+    </div>
+
+    <h2>Test 1: Basic Tab Manager</h2>
+    <div class="demo-container" id="demo1"></div>
+
+    <div class="controls">
+      <button onclick="switchToTab1('initial-conditions')">Switch to Initial Conditions</button>
+      <button onclick="switchToTab1('simulation')">Switch to Simulation</button>
+      <button onclick="switchToTab1('statistics')">Switch to Statistics</button>
+    </div>
+
+    <div id="log1" class="log"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Test 2: Animated Transitions (Slide)</h2>
+    <div class="demo-container" id="demo2"></div>
+
+    <div class="controls">
+      <button onclick="switchToTab2('initial-conditions')">Initial Conditions</button>
+      <button onclick="switchToTab2('simulation')">Simulation</button>
+      <button onclick="switchToTab2('statistics')">Statistics</button>
+    </div>
+
+    <div id="log2" class="log"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Test 3: With Persistence (Check localStorage)</h2>
+    <div class="demo-container" id="demo3"></div>
+
+    <div class="controls">
+      <button onclick="switchToTab3('initial-conditions')">Initial Conditions</button>
+      <button onclick="switchToTab3('simulation')">Simulation</button>
+      <button onclick="switchToTab3('statistics')">Statistics</button>
+      <button onclick="reloadDemo3()">Reload (Should Remember Tab)</button>
+    </div>
+
+    <div id="log3" class="log"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Test 4: Dynamic Panel Management</h2>
+    <div class="demo-container" id="demo4"></div>
+
+    <div class="controls">
+      <button onclick="addPanelToTab4()">Add Panel</button>
+      <button onclick="removePanelFromTab4()">Remove Last Panel</button>
+      <button onclick="disablePanel()">Toggle Statistics Disabled</button>
+    </div>
+
+    <div id="log4" class="log"></div>
+  </div>
+
+  <script type="module">
+    import { TabManager } from './TabManager.js';
+
+    // Helper function to create panel content
+    function createPanelContent(title, description, details) {
+      const div = document.createElement('div');
+      div.className = 'panel-content';
+
+      const h3 = document.createElement('h3');
+      h3.textContent = title;
+      div.appendChild(h3);
+
+      const p = document.createElement('p');
+      p.textContent = description;
+      div.appendChild(p);
+
+      if (details) {
+        const grid = document.createElement('div');
+        grid.className = 'info-grid';
+
+        for (const [label, value] of Object.entries(details)) {
+          const labelDiv = document.createElement('div');
+          labelDiv.className = 'info-label';
+          labelDiv.textContent = label + ':';
+          grid.appendChild(labelDiv);
+
+          const valueDiv = document.createElement('div');
+          valueDiv.className = 'info-value';
+          valueDiv.textContent = value;
+          grid.appendChild(valueDiv);
+        }
+
+        div.appendChild(grid);
+      }
+
+      return div;
+    }
+
+    // Helper function to log events
+    function logEvent(logElementId, event, data) {
+      const logEl = document.getElementById(logElementId);
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const time = new Date().toLocaleTimeString();
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'log-time';
+      timeSpan.textContent = `[${time}]`;
+
+      const eventSpan = document.createElement('span');
+      eventSpan.className = 'log-event';
+      eventSpan.textContent = event;
+
+      entry.appendChild(timeSpan);
+      entry.appendChild(eventSpan);
+
+      if (data) {
+        entry.appendChild(document.createTextNode(': ' + JSON.stringify(data)));
+      }
+
+      logEl.insertBefore(entry, logEl.firstChild);
+
+      // Limit log entries
+      while (logEl.children.length > 20) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+
+    // ===================================================================
+    // Test 1: Basic Tab Manager
+    // ===================================================================
+    const panels1 = [
+      {
+        id: 'initial-conditions',
+        title: 'Initial Conditions',
+        icon: '⚙️',
+        element: createPanelContent(
+          'Initial Conditions',
+          'Configure the starting state of the quantum simulation.',
+          {
+            'Position': 'Center of domain',
+            'Momentum': 'p = 0.5',
+            'Packet Size': '2.56',
+            'Wave Type': 'Gaussian'
+          }
+        )
+      },
+      {
+        id: 'simulation',
+        title: 'Simulation',
+        icon: '▶️',
+        element: createPanelContent(
+          'Simulation Controls',
+          'Control the simulation playback and visualization settings.',
+          {
+            'State': 'Playing',
+            'Speed': '0.1x',
+            'Time Step': '0.01',
+            'Visualization': 'Probability Density'
+          }
+        )
+      },
+      {
+        id: 'statistics',
+        title: 'Statistics',
+        icon: '📊',
+        element: createPanelContent(
+          'Statistics & Info',
+          'View real-time statistics and information about the simulation.',
+          {
+            'Total Probability': '100.0000%',
+            'Time Elapsed': '0.00s',
+            'Grid Size': '128×128',
+            'Measurements': '0'
+          }
+        )
+      }
+    ];
+
+    const tab1 = new TabManager({
+      panels: panels1,
+      defaultPanel: 'simulation',
+      tabPosition: 'top',
+      animated: false
+    });
+
+    tab1.render(document.getElementById('demo1'));
+
+    // Listen for tab changes
+    document.getElementById('demo1').addEventListener('tabchange', (e) => {
+      logEvent('log1', 'tabchange', e.detail);
+    });
+
+    // Global functions for controls
+    window.switchToTab1 = (panelId) => {
+      tab1.switchToPanel(panelId);
+    };
+
+    // ===================================================================
+    // Test 2: Animated Transitions
+    // ===================================================================
+    const panels2 = [
+      {
+        id: 'initial-conditions',
+        title: 'Initial Conditions',
+        icon: '⚙️',
+        element: createPanelContent(
+          'Initial Conditions',
+          'Watch the smooth slide animation as you switch between tabs.',
+          {
+            'Animation': 'Slide',
+            'Duration': '250ms'
+          }
+        )
+      },
+      {
+        id: 'simulation',
+        title: 'Simulation',
+        icon: '▶️',
+        element: createPanelContent(
+          'Simulation Controls',
+          'The slide animation provides visual continuity during tab transitions.',
+          {
+            'Animation': 'Slide',
+            'Direction': 'Horizontal'
+          }
+        )
+      },
+      {
+        id: 'statistics',
+        title: 'Statistics',
+        icon: '📊',
+        element: createPanelContent(
+          'Statistics & Info',
+          'Animations enhance the user experience without being distracting.',
+          {
+            'Animation': 'Slide',
+            'Easing': 'ease'
+          }
+        )
+      }
+    ];
+
+    const tab2 = new TabManager({
+      panels: panels2,
+      defaultPanel: 'initial-conditions',
+      tabPosition: 'top',
+      animated: true,
+      animationType: 'slide'
+    });
+
+    tab2.render(document.getElementById('demo2'));
+
+    document.getElementById('demo2').addEventListener('tabchange', (e) => {
+      logEvent('log2', 'tabchange', e.detail);
+    });
+
+    window.switchToTab2 = (panelId) => {
+      tab2.switchToPanel(panelId);
+    };
+
+    // ===================================================================
+    // Test 3: Persistent State
+    // ===================================================================
+    let tab3;
+
+    function initDemo3() {
+      const panels3 = [
+        {
+          id: 'initial-conditions',
+          title: 'Initial Conditions',
+          icon: '⚙️',
+          element: createPanelContent(
+            'Initial Conditions',
+            'This tab manager remembers your last selected tab in localStorage.',
+            {
+              'Persistence': 'Enabled',
+              'Storage Key': 'tabManager.demo3'
+            }
+          )
+        },
+        {
+          id: 'simulation',
+          title: 'Simulation',
+          icon: '▶️',
+          element: createPanelContent(
+            'Simulation Controls',
+            'Click "Reload" to see persistence in action - the same tab will be active.',
+            {
+              'Persistence': 'Enabled',
+              'Storage': 'localStorage'
+            }
+          )
+        },
+        {
+          id: 'statistics',
+          title: 'Statistics',
+          icon: '📊',
+          element: createPanelContent(
+            'Statistics & Info',
+            'Try switching tabs and reloading. Your selection is preserved!',
+            {
+              'Persistence': 'Enabled',
+              'Restored': 'On Load'
+            }
+          )
+        }
+      ];
+
+      tab3 = new TabManager({
+        panels: panels3,
+        defaultPanel: 'simulation',
+        tabPosition: 'top',
+        animated: true,
+        persistent: true,
+        storageKey: 'tabManager.demo3'
+      });
+
+      const container = document.getElementById('demo3');
+      container.innerHTML = '';
+      tab3.render(container);
+
+      container.addEventListener('tabchange', (e) => {
+        logEvent('log3', 'tabchange', e.detail);
+      });
+    }
+
+    initDemo3();
+
+    window.switchToTab3 = (panelId) => {
+      tab3.switchToPanel(panelId);
+    };
+
+    window.reloadDemo3 = () => {
+      if (tab3) {
+        tab3.destroy();
+      }
+      initDemo3();
+      logEvent('log3', 'reload', { restored: tab3.getActivePanel() });
+    };
+
+    // ===================================================================
+    // Test 4: Dynamic Panel Management
+    // ===================================================================
+    const panels4 = [
+      {
+        id: 'initial-conditions',
+        title: 'Initial Conditions',
+        icon: '⚙️',
+        element: createPanelContent(
+          'Initial Conditions',
+          'Panels can be added and removed dynamically.',
+          {}
+        )
+      },
+      {
+        id: 'simulation',
+        title: 'Simulation',
+        icon: '▶️',
+        element: createPanelContent(
+          'Simulation Controls',
+          'Try adding and removing panels using the controls.',
+          {}
+        )
+      },
+      {
+        id: 'statistics',
+        title: 'Statistics',
+        icon: '📊',
+        element: createPanelContent(
+          'Statistics & Info',
+          'Panels can also be disabled dynamically.',
+          {}
+        )
+      }
+    ];
+
+    const tab4 = new TabManager({
+      panels: panels4,
+      defaultPanel: 'simulation',
+      tabPosition: 'top',
+      animated: true
+    });
+
+    tab4.render(document.getElementById('demo4'));
+
+    document.getElementById('demo4').addEventListener('tabchange', (e) => {
+      logEvent('log4', 'tabchange', e.detail);
+    });
+
+    let panelCounter = 4;
+    window.addPanelToTab4 = () => {
+      const newId = `dynamic-${panelCounter}`;
+      tab4.addPanel({
+        id: newId,
+        title: `Panel ${panelCounter}`,
+        icon: '🆕',
+        element: createPanelContent(
+          `Dynamic Panel ${panelCounter}`,
+          'This panel was added dynamically!',
+          {
+            'Created': new Date().toLocaleTimeString(),
+            'Panel ID': newId
+          }
+        )
+      });
+      panelCounter++;
+      logEvent('log4', 'addPanel', { id: newId });
+    };
+
+    window.removePanelFromTab4 = () => {
+      const allIds = tab4.getAllPanelIds();
+      const lastId = allIds[allIds.length - 1];
+      if (allIds.length > 1) {
+        tab4.removePanel(lastId);
+        logEvent('log4', 'removePanel', { id: lastId });
+      } else {
+        logEvent('log4', 'removePanel', { error: 'Cannot remove last panel' });
+      }
+    };
+
+    let statisticsDisabled = false;
+    window.disablePanel = () => {
+      statisticsDisabled = !statisticsDisabled;
+      tab4.setPanelDisabled('statistics', statisticsDisabled);
+      logEvent('log4', 'setPanelDisabled', { id: 'statistics', disabled: statisticsDisabled });
+    };
+
+    // Log initial state
+    logEvent('log1', 'init', { activePanel: tab1.getActivePanel() });
+    logEvent('log2', 'init', { activePanel: tab2.getActivePanel() });
+    logEvent('log3', 'init', { activePanel: tab3.getActivePanel() });
+    logEvent('log4', 'init', { activePanel: tab4.getActivePanel() });
+
+    console.log('✅ TabManager tests loaded successfully');
+    console.log('Test 1:', tab1);
+    console.log('Test 2:', tab2);
+    console.log('Test 3:', tab3);
+    console.log('Test 4:', tab4);
+  </script>
+</body>
+</html>

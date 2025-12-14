@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ControlsManager Integration Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .header {
+      color: white;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 20px;
+      flex: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .controls-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .visualization-container {
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    #quantum-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .stats-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      pointer-events: none;
+    }
+
+    .stats-overlay h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #00ff00;
+    }
+
+    .test-results {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-width: 1600px;
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+
+    .test-results h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+
+    .test-item {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .test-item.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .test-item.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .test-item .icon {
+      font-size: 1.5rem;
+    }
+
+    /* Tab styles */
+    .tab-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .tab-bar {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      background: #f5f5f5;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 15px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-button:hover {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+
+    .tab-button.active {
+      background: white;
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-icon {
+      font-size: 1.2rem;
+    }
+
+    .tab-content-container {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Control panel styles */
+    .control-panel {
+      margin-bottom: 20px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .panel-icon {
+      font-size: 1.5rem;
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      color: #333;
+      margin: 0;
+    }
+
+    /* Control styles */
+    .control {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .slider-container {
+      padding: 10px;
+    }
+
+    .slider-track {
+      width: 100%;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+
+    .slider-thumb {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-thumb::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .slider-thumb::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .slider-value {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    .button-control {
+      width: 100%;
+    }
+
+    .button-control button {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .button-control.primary button {
+      background: #667eea;
+      color: white;
+    }
+
+    .button-control.primary button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .button-control.secondary button {
+      background: #6c757d;
+      color: white;
+    }
+
+    .button-control.secondary button:hover {
+      background: #5a6268;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .radio-group.horizontal {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .radio-option:hover {
+      background: #f5f5f5;
+    }
+
+    .radio-option input[type="radio"] {
+      cursor: pointer;
+    }
+
+    .select-control select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .select-control select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .canvas-control {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .canvas-control canvas {
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: crosshair;
+      transition: border-color 0.2s;
+    }
+
+    .canvas-control canvas:hover {
+      border-color: #667eea;
+    }
+
+    .display-control {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+    }
+
+    .display-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>ControlsManager Integration Test</h1>
+    <p>Testing the complete controls system with real quantum simulation</p>
+  </div>
+
+  <div class="main-container">
+    <!-- Controls sidebar -->
+    <div class="controls-container" id="controls-root"></div>
+
+    <!-- Visualization area -->
+    <div class="visualization-container">
+      <canvas id="quantum-canvas" width="800" height="800"></canvas>
+      <div class="stats-overlay">
+        <h3>Live Statistics</h3>
+        <div>FPS: <span id="fps-display">60</span></div>
+        <div>Playing: <span id="playing-display">No</span></div>
+        <div>Time: <span id="time-display">0.00</span>s</div>
+        <div>Norm: <span id="norm-display">1.0000</span></div>
+        <div>Measurements: <span id="measurements-display">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-results">
+    <h2>Test Results</h2>
+    <div id="test-output"></div>
+  </div>
+
+  <script type="module">
+    // Import modules
+    import { QuantumSimulation } from '../../quantum.js';
+    import { VisualizerV2 as Visualizer } from '../../visualization/VisualizerV2.js';
+    import { ControlsManager } from './ControlsManager.js';
+
+    // Test suite
+    const tests = [];
+    const testOutput = document.getElementById('test-output');
+
+    function addTest(name, result, message = '') {
+      tests.push({ name, result, message });
+      const div = document.createElement('div');
+      div.className = `test-item ${result ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <span class="icon">${result ? '✓' : '✗'}</span>
+        <div>
+          <strong>${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ''}
+        </div>
+      `;
+      testOutput.appendChild(div);
+    }
+
+    // Initialize quantum simulation
+    const canvas = document.getElementById('quantum-canvas');
+    const gridSize = 128;
+    const domainSize = 10.0;
+    const dx = domainSize / gridSize;
+    const dt = 0.01;
+
+    const simulation = new QuantumSimulation(
+      gridSize,
+      dx,
+      dt,
+      1.0,  // hbar
+      1.0,  // mass
+      'periodic',
+      0.1   // timeScale
+    );
+
+    // Initialize simulation with default wavepacket
+    simulation.initialize({
+      centerX: gridSize / 2,
+      centerY: gridSize / 2,
+      width: 0.6,
+      momentumX: 1.0,
+      momentumY: 0.6
+    });
+
+    addTest('Quantum Simulation Initialization', simulation.psi !== null);
+
+    // Initialize visualizer
+    const visualizer = new Visualizer(canvas, simulation, {
+      visualizationMode: 'probability',
+      showPotentialPlot: true,
+      showPhaseWheel: false
+    });
+
+    addTest('Visualizer Initialization', visualizer.panels !== null);
+
+    // Initialize ControlsManager
+    const controlsRoot = document.getElementById('controls-root');
+    const manager = new ControlsManager(simulation, visualizer);
+
+    try {
+      manager.initialize(controlsRoot);
+      addTest('ControlsManager Initialization', true);
+    } catch (error) {
+      addTest('ControlsManager Initialization', false, error.message);
+    }
+
+    // Test 1: Check all tabs were created
+    const expectedTabs = ['initial-conditions', 'simulation', 'statistics'];
+    const actualTabs = manager.getAllPanels().map(p => p.id);
+    const hasAllTabs = expectedTabs.every(id => actualTabs.includes(id));
+    addTest('All Tabs Created', hasAllTabs, `Expected: ${expectedTabs.join(', ')}, Got: ${actualTabs.join(', ')}`);
+
+    // Test 2: Check TabManager was created
+    addTest('TabManager Created', manager.tabManager !== null);
+
+    // Test 3: Check initial conditions panel controls
+    const icPanel = manager.getPanel('initial-conditions');
+    if (icPanel) {
+      addTest('Initial Conditions Panel Exists', true);
+      addTest('Position Selector Exists', icPanel.hasControl('position-selector'));
+      addTest('Momentum Selector Exists', icPanel.hasControl('momentum-selector'));
+      addTest('Packet Size Slider Exists', icPanel.hasControl('packet-size'));
+      addTest('Reset Button Exists', icPanel.hasControl('reset'));
+    } else {
+      addTest('Initial Conditions Panel Exists', false);
+    }
+
+    // Test 4: Check simulation panel controls
+    const simPanel = manager.getPanel('simulation');
+    if (simPanel) {
+      addTest('Simulation Panel Exists', true);
+      addTest('Play/Pause Button Exists', simPanel.hasControl('play-pause'));
+      addTest('Speed Slider Exists', simPanel.hasControl('speed'));
+      addTest('Measurement Radius Slider Exists', simPanel.hasControl('measurement-radius'));
+      addTest('Potential Type Radio Exists', simPanel.hasControl('potential-type'));
+      addTest('Potential Strength Slider Exists', simPanel.hasControl('potential-strength'));
+      addTest('Visualization Mode Select Exists', simPanel.hasControl('viz-mode'));
+    } else {
+      addTest('Simulation Panel Exists', false);
+    }
+
+    // Test 5: Check statistics panel controls
+    const statsPanel = manager.getPanel('statistics');
+    if (statsPanel) {
+      addTest('Statistics Panel Exists', true);
+      addTest('Total Probability Display Exists', statsPanel.hasControl('total-probability'));
+      addTest('Time Elapsed Display Exists', statsPanel.hasControl('time-elapsed'));
+      addTest('Grid Size Display Exists', statsPanel.hasControl('grid-size'));
+      addTest('Measurement Count Display Exists', statsPanel.hasControl('measurement-count'));
+    } else {
+      addTest('Statistics Panel Exists', false);
+    }
+
+    // Test 6: Test state management
+    const initialState = manager.getState();
+    addTest('Initial State Retrieved', initialState !== null);
+    addTest('Initial Playing State is False', initialState.isPlaying === false);
+    addTest('Initial Measurement Count is 0', initialState.measurementCount === 0);
+
+    manager.setState({ measurementCount: 5 });
+    addTest('State Update Works', manager.getState().measurementCount === 5);
+
+    // Test 7: Test play/pause toggle
+    const wasPlaying = manager.togglePlayPause();
+    addTest('Toggle Play/Pause Returns Boolean', typeof wasPlaying === 'boolean');
+    addTest('Play/Pause State Changed', manager.getState().isPlaying === true);
+
+    manager.togglePlayPause(); // Reset to paused
+
+    // Test 8: Test reset functionality
+    try {
+      manager.handleReset();
+      addTest('Reset Simulation Works', true);
+      addTest('Time Reset to Zero', simulation.time === 0);
+    } catch (error) {
+      addTest('Reset Simulation Works', false, error.message);
+    }
+
+    // Test 9: Test canvas click handling
+    try {
+      manager.handleCanvasClick(400, 400);
+      addTest('Canvas Click Handled', true);
+    } catch (error) {
+      addTest('Canvas Click Handled', false, error.message);
+    }
+
+    // Test 10: Test control lookup
+    const speedSlider = manager.getControl('speed');
+    addTest('Get Control by ID Works', speedSlider !== null);
+
+    // Test 11: Test tab switching
+    try {
+      manager.switchToTab('statistics');
+      addTest('Tab Switching Works', manager.getActiveTab() === 'statistics');
+      manager.switchToTab('simulation'); // Reset to simulation tab
+    } catch (error) {
+      addTest('Tab Switching Works', false, error.message);
+    }
+
+    // Setup animation loop
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fpsUpdateTime = lastTime;
+
+    function animationLoop(currentTime) {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      // Update FPS counter
+      frameCount++;
+      if (currentTime - fpsUpdateTime >= 1000) {
+        document.getElementById('fps-display').textContent = frameCount;
+        frameCount = 0;
+        fpsUpdateTime = currentTime;
+      }
+
+      // Update simulation if playing
+      if (manager.getState().isPlaying) {
+        const stepsPerFrame = 5;
+        for (let i = 0; i < stepsPerFrame; i++) {
+          simulation.step();
+        }
+      }
+
+      // Update controls (display controls pull their values)
+      manager.update(deltaTime);
+
+      // Render visualization
+      visualizer.render();
+
+      // Update stats overlay
+      document.getElementById('playing-display').textContent = manager.getState().isPlaying ? 'Yes' : 'No';
+      document.getElementById('time-display').textContent = simulation.time.toFixed(2);
+      document.getElementById('norm-display').textContent = simulation.psi.norm().toFixed(4);
+      document.getElementById('measurements-display').textContent = manager.getState().measurementCount;
+
+      requestAnimationFrame(animationLoop);
+    }
+
+    // Canvas interaction handlers
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      manager.handleCanvasClick(x, y);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      manager.handleCanvasHover(x, y);
+    });
+
+    // Start animation loop
+    requestAnimationFrame(animationLoop);
+
+    // Summary
+    const passCount = tests.filter(t => t.result).length;
+    const totalCount = tests.length;
+    console.log(`Tests passed: ${passCount}/${totalCount}`);
+
+    // Add summary
+    const summary = document.createElement('div');
+    summary.style.marginTop = '20px';
+    summary.style.padding = '15px';
+    summary.style.borderRadius = '8px';
+    summary.style.fontSize = '18px';
+    summary.style.fontWeight = 'bold';
+    summary.style.textAlign = 'center';
+
+    if (passCount === totalCount) {
+      summary.style.background = '#d4edda';
+      summary.style.color = '#155724';
+      summary.textContent = `✓ All ${totalCount} tests passed!`;
+    } else {
+      summary.style.background = '#f8d7da';
+      summary.style.color = '#721c24';
+      summary.textContent = `✗ ${passCount}/${totalCount} tests passed`;
+    }
+
+    testOutput.appendChild(summary);
+  </script>
+</body>
+</html>

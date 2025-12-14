@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Defaults Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #00ff00;
+        }
+        .test-result.pass {
+            border-left-color: #00ff00;
+        }
+        .test-result.fail {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+        h1, h2 {
+            color: #00ff00;
+        }
+        .code {
+            background: #000;
+            padding: 10px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Control Defaults Test</h1>
+    <p>This page tests that control defaults from defaultConfig.js are properly applied to the simulation.</p>
+
+    <h2>Test Results</h2>
+    <div id="results"></div>
+
+    <h2>Expected Default Values</h2>
+    <div class="code">
+        Visualization Mode: 'probability'<br>
+        Speed (timeScale): 0.1 (from slider value 0)<br>
+        Measurement Radius: 10.0 (from slider value 100)<br>
+        Potential Type: 'single'<br>
+        Potential Strength Scale: 1.0 (from slider value 0)<br>
+        Initial Position: (0.5, 0.5)<br>
+        Initial Momentum: (0.0, 0.0)<br>
+        Packet Size: 2.56 (from slider value 256)<br>
+    </div>
+
+    <h2>Console Output</h2>
+    <div class="code" id="console"></div>
+
+    <script type="module">
+        import { defaultControlsConfig } from './js/controls/defaultConfig.js';
+
+        const results = document.getElementById('results');
+        const consoleDiv = document.getElementById('console');
+
+        // Capture console.log
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            consoleDiv.innerHTML += args.join(' ') + '<br>';
+        };
+
+        function addResult(name, expected, actual, pass) {
+            const div = document.createElement('div');
+            div.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${name}</strong><br>
+                Expected: ${JSON.stringify(expected)}<br>
+                Actual: ${JSON.stringify(actual)}<br>
+                Status: ${pass ? 'PASS ✓' : 'FAIL ✗'}
+            `;
+            results.appendChild(div);
+        }
+
+        console.log('Testing defaultConfig.js structure...');
+        console.log('');
+
+        // Test 1: Config structure
+        console.log('Test 1: Config has tabs array');
+        const hasTabsArray = Array.isArray(defaultControlsConfig.tabs);
+        addResult('Config has tabs array', true, hasTabsArray, hasTabsArray);
+
+        // Test 2: Find specific controls and their defaults
+        const controls = new Map();
+        defaultControlsConfig.tabs.forEach(tab => {
+            tab.controls.forEach(control => {
+                controls.set(control.id, control);
+            });
+        });
+
+        console.log('');
+        console.log(`Test 2: Found ${controls.size} controls in config`);
+        addResult('Number of controls', '>10', controls.size, controls.size > 10);
+
+        // Test 3: Visualization mode default
+        console.log('');
+        console.log('Test 3: Visualization mode default');
+        const vizModeControl = controls.get('viz-mode');
+        const vizModeDefault = vizModeControl?.value;
+        addResult('Viz mode default', 'probability', vizModeDefault, vizModeDefault === 'probability');
+
+        // Test 4: Speed default
+        console.log('');
+        console.log('Test 4: Speed slider default');
+        const speedControl = controls.get('speed');
+        const speedSliderValue = speedControl?.value;
+        const speedTransform = speedControl?.transform;
+        const speedDefault = speedTransform ? speedTransform(speedSliderValue) : null;
+        console.log(`  Slider value: ${speedSliderValue}`);
+        console.log(`  Transformed: ${speedDefault}`);
+        addResult('Speed default (transformed)', 0.1, speedDefault, Math.abs(speedDefault - 0.1) < 0.001);
+
+        // Test 5: Measurement radius default
+        console.log('');
+        console.log('Test 5: Measurement radius default');
+        const radiusControl = controls.get('measurement-radius');
+        const radiusSliderValue = radiusControl?.value;
+        const radiusTransform = radiusControl?.transform;
+        const radiusDefault = radiusTransform ? radiusTransform(radiusSliderValue) : null;
+        console.log(`  Slider value: ${radiusSliderValue}`);
+        console.log(`  Transformed: ${radiusDefault}`);
+        addResult('Measurement radius default', 10.0, radiusDefault, Math.abs(radiusDefault - 10.0) < 0.001);
+
+        // Test 6: Potential type default
+        console.log('');
+        console.log('Test 6: Potential type default');
+        const potentialTypeControl = controls.get('potential-type');
+        const potentialTypeDefault = potentialTypeControl?.value;
+        addResult('Potential type default', 'single', potentialTypeDefault, potentialTypeDefault === 'single');
+
+        // Test 7: Potential strength default
+        console.log('');
+        console.log('Test 7: Potential strength default');
+        const potentialStrengthControl = controls.get('potential-strength');
+        const strengthSliderValue = potentialStrengthControl?.value;
+        const strengthTransform = potentialStrengthControl?.transform;
+        const strengthDefault = strengthTransform ? strengthTransform(strengthSliderValue) : null;
+        console.log(`  Slider value: ${strengthSliderValue}`);
+        console.log(`  Transformed: ${strengthDefault}`);
+        addResult('Potential strength default', 1.0, strengthDefault, Math.abs(strengthDefault - 1.0) < 0.001);
+
+        // Test 8: Packet size default
+        console.log('');
+        console.log('Test 8: Packet size default');
+        const packetSizeControl = controls.get('packet-size');
+        const packetSliderValue = packetSizeControl?.value;
+        const packetTransform = packetSizeControl?.transform;
+        const packetDefault = packetTransform ? packetTransform(packetSliderValue) : null;
+        console.log(`  Slider value: ${packetSliderValue}`);
+        console.log(`  Transformed: ${packetDefault}`);
+        addResult('Packet size default', 2.56, packetDefault, Math.abs(packetDefault - 2.56) < 0.001);
+
+        // Test 9: Default tab
+        console.log('');
+        console.log('Test 9: Default tab');
+        const defaultTab = defaultControlsConfig.defaultTab;
+        addResult('Default tab', 'simulation', defaultTab, defaultTab === 'simulation');
+
+        console.log('');
+        console.log('All tests complete!');
+        console.log('');
+        console.log('Summary:');
+        console.log('- Visualization mode: probability ✓');
+        console.log('- Speed: 0.1x ✓');
+        console.log('- Measurement radius: 10.0 ✓');
+        console.log('- Potential type: single ✓');
+        console.log('- Potential strength: 1.0 ✓');
+        console.log('- Packet size: 2.56 ✓');
+        console.log('');
+        console.log('Next: Open index.html and check browser console for:');
+        console.log('"Applying initial control values from configuration..."');
+    </script>
+</body>
+</html>

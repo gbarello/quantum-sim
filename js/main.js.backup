@@ -6,7 +6,7 @@
 
 import { QuantumSimulation } from './quantum.js';
 import { VisualizerV2 as Visualizer } from './visualization/VisualizerV2.js';
-import { ControlsManager } from './controls/ControlsManager.js';
+import { Controller } from './controls.js';
 
 /**
  * Application configuration
@@ -33,8 +33,8 @@ const config = {
 
   // Visualization
   showGrid: false,
-  showPhaseWheel: true
-  // Note: visualizationMode is now set from control defaults in ControlsManager
+  showPhaseWheel: true,
+  visualizationMode: 'full' // 'full', 'probability', 'phase'
 };
 
 /**
@@ -44,7 +44,7 @@ class QuantumPlaygroundApp {
   constructor() {
     this.simulation = null;
     this.visualizer = null;
-    this.controlsManager = null;
+    this.controller = null;
     this.lastFrameTime = 0;
     this.animationFrameId = null;
   }
@@ -96,71 +96,94 @@ class QuantumPlaygroundApp {
         config.timeScale
       );
 
+      // Read initial potential type from radio buttons (if available)
+      const potentialRadio = document.querySelector('input[name="potential-type"]:checked');
+      if (potentialRadio) {
+        this.simulation.setPotentialType(potentialRadio.value);
+        console.log(`Initial potential type set to: ${potentialRadio.value}`);
+      }
+
       // Initialize visualizer
       console.log('Creating visualizer...');
       this.visualizer = new Visualizer(canvas, this.simulation);
       this.visualizer.setGridVisible(config.showGrid);
       this.visualizer.setPhaseWheelVisible(config.showPhaseWheel);
 
-      // Note: Visualization mode will be set from control defaults below
+      // Read initial visualization mode from dropdown (if available)
+      const vizModeSelect = document.getElementById('viz-mode');
+      const initialVizMode = vizModeSelect ? vizModeSelect.value : config.visualizationMode;
+      // Map "complex" to "full" for internal use
+      const internalMode = initialVizMode === 'complex' ? 'full' : initialVizMode;
+      this.visualizer.setVisualizationMode(internalMode);
 
-      // Initialize controls manager
-      console.log('Creating controls manager...');
-      this.controlsManager = new ControlsManager(this.simulation, this.visualizer);
+      // Gather UI elements
+      const uiElements = {
+        canvas: canvas,
+        playPauseBtn: document.getElementById('play-pause'),
+        resetBtn: document.getElementById('reset'),
+        speedSlider: document.getElementById('speed-slider'),
+        speedValue: document.getElementById('speed-value'),
+        measurementRadiusSlider: document.getElementById('measurement-radius-slider'),
+        measurementRadiusValue: document.getElementById('measurement-radius-value'),
+        potentialStrengthSlider: document.getElementById('potential-strength-slider'),
+        potentialStrengthValue: document.getElementById('potential-strength-value'),
+        gridSizeSelect: document.getElementById('grid-size'),
+        gridToggle: document.getElementById('grid-toggle'),
+        vizModeSelect: document.getElementById('viz-mode'),
+        totalProbDisplay: document.getElementById('total-probability'),
+        timeDisplay: document.getElementById('time-elapsed'),
+        measurementResult: document.getElementById('info-overlay'),
+        hoverProbability: document.getElementById('hover-info'),
+        positionSelector: document.getElementById('position-selector'),
+        momentumSelector: document.getElementById('momentum-selector'),
+        packetSizeSlider: document.getElementById('packet-size-slider'),
+        packetSizeValue: document.getElementById('packet-size-value'),
+        positionDisplay: document.getElementById('position-display'),
+        momentumDisplay: document.getElementById('momentum-display')
+      };
 
-      // Get controls root element and initialize
-      const controlsRoot = document.getElementById('controls-root');
-      if (!controlsRoot) {
-        throw new Error('Controls root element not found');
+      // Verify all UI elements exist
+      for (const [key, element] of Object.entries(uiElements)) {
+        if (!element) {
+          console.warn(`UI element not found: ${key}`);
+        }
       }
-      this.controlsManager.initialize(controlsRoot);
 
-      // Apply initial control values to simulation and visualizer
-      // This ensures defaults from defaultConfig.js are properly applied
-      this.controlsManager.applyInitialControlValues();
+      // Initialize controller
+      console.log('Creating controller...');
+      this.controller = new Controller(this.simulation, this.visualizer, uiElements);
 
-      // Initialize the simulation with default values from the controls manager
-      // Use the centralized conversion method to ensure consistency with Reset
-      const params = this.controlsManager.getSimulationParametersFromState();
+      // Now initialize the simulation with values from the controller (single source of truth)
+      const centerX = this.controller.initialPosition.x * config.gridSize;
+      const centerY = this.controller.initialPosition.y * config.gridSize;
+      const maxMomentum = 5.0;
+      const momentumX = (this.controller.initialMomentum.x - 0.5) * 2 * maxMomentum;
+      const momentumY = (this.controller.initialMomentum.y - 0.5) * 2 * maxMomentum;
+      const width = this.controller.packetSize * dx * 3;
 
-      console.log(`Initializing simulation from controls manager:`);
-      console.log(`  Position: (${params.centerX.toFixed(2)}, ${params.centerY.toFixed(2)})`);
-      console.log(`  Momentum: (${params.momentumX.toFixed(2)}, ${params.momentumY.toFixed(2)})`);
-      console.log(`  Width: ${params.width.toFixed(2)}`);
+      console.log(`Initializing simulation from controller initial conditions:`);
+      console.log(`  Position: (${centerX}, ${centerY})`);
+      console.log(`  Momentum: (${momentumX}, ${momentumY})`);
+      console.log(`  Width: ${width}`);
 
       this.simulation.initialize({
-        centerX: params.centerX,
-        centerY: params.centerY,
-        width: params.width,
-        momentumX: params.momentumX,
-        momentumY: params.momentumY
+        centerX: centerX,
+        centerY: centerY,
+        width: width,
+        momentumX: momentumX,
+        momentumY: momentumY
       });
 
       // Verify normalization
       const totalProb = this.simulation.getTotalProbability();
       console.log(`Initial total probability: ${totalProb.toFixed(8)}`);
 
-      // Set up canvas event handlers for measurement interactions
-      canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
-        this.controlsManager.handleCanvasClick(canvasX, canvasY);
-      });
-
-      canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
-        this.controlsManager.handleCanvasHover(canvasX, canvasY);
-      });
-
-      canvas.addEventListener('mouseleave', () => {
-        // Clear hover state when mouse leaves canvas
-        if (this.visualizer.updateHoverState) {
-          this.visualizer.updateHoverState(null, null);
-        }
-      });
+      // Set up grid toggle if it exists
+      if (uiElements.gridToggle) {
+        uiElements.gridToggle.addEventListener('change', (e) => {
+          this.visualizer.setGridVisible(e.target.checked);
+        });
+      }
 
       // Render initial state
       this.visualizer.render();
@@ -207,14 +230,14 @@ class QuantumPlaygroundApp {
     const deltaTime = (currentTime - this.lastFrameTime) / 1000; // Convert to seconds
     this.lastFrameTime = currentTime;
 
-    // Update controls manager (updates display controls)
-    if (this.controlsManager) {
-      this.controlsManager.update(deltaTime);
+    // Update controller (stats, etc.)
+    if (this.controller) {
+      this.controller.update(deltaTime);
     }
 
     // Perform physics steps if playing
-    if (this.controlsManager && this.controlsManager.getState().isPlaying) {
-      const stepsPerFrame = config.stepsPerFrame;
+    if (this.controller && this.controller.getIsPlaying()) {
+      const stepsPerFrame = this.controller.getStepsPerFrame();
 
       for (let i = 0; i < stepsPerFrame; i++) {
         this.simulation.step();
@@ -274,8 +297,8 @@ class QuantumPlaygroundApp {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
-    if (this.controlsManager) {
-      this.controlsManager.destroy();
+    if (this.controller) {
+      this.controller.destroy();
     }
     if (this.visualizer) {
       this.visualizer.dispose();

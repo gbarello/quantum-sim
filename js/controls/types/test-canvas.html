@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CanvasControl Test</title>
+  <link rel="stylesheet" href="../styles/controls.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-section h2 {
+      color: #34495e;
+      margin-top: 0;
+      font-size: 1.2em;
+    }
+
+    .output {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .output-line {
+      margin: 5px 0;
+    }
+
+    .button-group {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .test-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CanvasControl Test Suite</h1>
+
+  <div class="test-section">
+    <h2>Test 1: Default Canvas (with default draw function)</h2>
+    <div id="test1-container"></div>
+    <div class="output" id="test1-output">
+      <div class="output-line">Click the canvas to test selection...</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Position Selector (custom draw function)</h2>
+    <div class="test-controls">
+      <div id="test2-container"></div>
+    </div>
+    <div class="output" id="test2-output">
+      <div class="output-line">Click to select a position...</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Momentum Selector (with gradient background)</h2>
+    <div class="test-controls">
+      <div id="test3-container"></div>
+    </div>
+    <div class="output" id="test3-output">
+      <div class="output-line">Click to select momentum...</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 4: Control Methods</h2>
+    <div id="test4-container"></div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="testGetValue()">Get Value</button>
+      <button class="btn btn-primary" onclick="testSetValue()">Set Random Value</button>
+      <button class="btn btn-secondary" onclick="testDisable()">Toggle Disable</button>
+      <button class="btn btn-secondary" onclick="testHide()">Toggle Hide</button>
+    </div>
+    <div class="output" id="test4-output">
+      <div class="output-line">Use buttons to test control methods...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { CanvasControl } from './CanvasControl.js';
+    import { ControlRegistry } from '../ControlRegistry.js';
+
+    // Make controls accessible globally for button handlers
+    window.testControls = {};
+
+    function log(outputId, message) {
+      const output = document.getElementById(outputId);
+      const line = document.createElement('div');
+      line.className = 'output-line';
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    // Test 1: Default canvas
+    function test1() {
+      const control = new CanvasControl({
+        id: 'default-canvas',
+        label: 'Default Canvas',
+        width: 200,
+        height: 200,
+        hint: 'Click anywhere on the grid',
+        onSelect: (x, y) => {
+          log('test1-output', `Selected: (${x.toFixed(3)}, ${y.toFixed(3)})`);
+        }
+      });
+
+      control.on('select', (data) => {
+        log('test1-output', `Event emitted: x=${data.x.toFixed(3)}, y=${data.y.toFixed(3)}`);
+      });
+
+      control.render(document.getElementById('test1-container'));
+      log('test1-output', 'Default canvas control created');
+    }
+
+    // Test 2: Position selector with custom draw
+    function test2() {
+      const control = new CanvasControl({
+        id: 'position-selector',
+        label: 'Position Selector',
+        width: 200,
+        height: 200,
+        hint: 'Click to set initial position',
+        defaultValue: { x: 0.5, y: 0.5 },
+        drawFunction: (ctx, state) => {
+          const width = ctx.canvas.width;
+          const height = ctx.canvas.height;
+
+          // Gradient background
+          const gradient = ctx.createLinearGradient(0, 0, width, height);
+          gradient.addColorStop(0, '#3498db');
+          gradient.addColorStop(1, '#2c3e50');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+
+          // Draw grid
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= 10; i++) {
+            const x = (i / 10) * width;
+            const y = (i / 10) * height;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+          }
+
+          // Draw selection
+          if (state.x !== null && state.y !== null) {
+            const px = state.x * width;
+            const py = state.y * height;
+
+            // Glow effect
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.5)';
+            ctx.beginPath();
+            ctx.arc(px, py, 20, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Center dot
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(px, py, 8, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // White border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        },
+        onSelect: (x, y) => {
+          log('test2-output', `Position selected: (${x.toFixed(3)}, ${y.toFixed(3)})`);
+        }
+      });
+
+      control.render(document.getElementById('test2-container'));
+      log('test2-output', 'Position selector created with default value (0.5, 0.5)');
+    }
+
+    // Test 3: Momentum selector
+    function test3() {
+      const control = new CanvasControl({
+        id: 'momentum-selector',
+        label: 'Momentum Selector',
+        width: 200,
+        height: 200,
+        hint: 'Click to set initial momentum',
+        drawFunction: (ctx, state) => {
+          const width = ctx.canvas.width;
+          const height = ctx.canvas.height;
+
+          // Circular gradient background
+          const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/2);
+          gradient.addColorStop(0, '#9b59b6');
+          gradient.addColorStop(1, '#2c3e50');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+
+          // Draw center crosshair
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(width/2, 0);
+          ctx.lineTo(width/2, height);
+          ctx.moveTo(0, height/2);
+          ctx.lineTo(width, height/2);
+          ctx.stroke();
+
+          // Draw circular guides
+          for (let r = 0.25; r <= 1; r += 0.25) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(width/2, height/2, r * width/2, 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+
+          // Draw momentum vector
+          if (state.x !== null && state.y !== null) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const px = state.x * width;
+            const py = state.y * height;
+
+            // Arrow from center to selection
+            ctx.strokeStyle = '#f39c12';
+            ctx.fillStyle = '#f39c12';
+            ctx.lineWidth = 3;
+
+            // Arrow line
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+
+            // Arrow head
+            const angle = Math.atan2(py - centerY, px - centerX);
+            const headLength = 15;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(
+              px - headLength * Math.cos(angle - Math.PI / 6),
+              py - headLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+              px - headLength * Math.cos(angle + Math.PI / 6),
+              py - headLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            // End point
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(px, py, 6, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        },
+        onSelect: (x, y) => {
+          const dx = x - 0.5;
+          const dy = y - 0.5;
+          const magnitude = Math.sqrt(dx*dx + dy*dy);
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          log('test3-output', `Momentum: mag=${magnitude.toFixed(3)}, angle=${angle.toFixed(1)}°`);
+        }
+      });
+
+      control.render(document.getElementById('test3-container'));
+      log('test3-output', 'Momentum selector created');
+    }
+
+    // Test 4: Control methods
+    function test4() {
+      const control = new CanvasControl({
+        id: 'methods-test',
+        label: 'Methods Test Canvas',
+        width: 200,
+        height: 200,
+        defaultValue: { x: 0.3, y: 0.7 },
+        onSelect: (x, y) => {
+          log('test4-output', `onSelect called: (${x.toFixed(3)}, ${y.toFixed(3)})`);
+        }
+      });
+
+      control.on('change', (data) => {
+        log('test4-output', `onChange event: (${data.x?.toFixed(3)}, ${data.y?.toFixed(3)})`);
+      });
+
+      control.render(document.getElementById('test4-container'));
+      window.testControls.methodsTest = control;
+      log('test4-output', 'Control created with initial value (0.3, 0.7)');
+    }
+
+    // Global test functions for buttons
+    window.testGetValue = function() {
+      const value = window.testControls.methodsTest.getValue();
+      log('test4-output', `getValue(): x=${value.x?.toFixed(3)}, y=${value.y?.toFixed(3)}`);
+    };
+
+    window.testSetValue = function() {
+      const x = Math.random();
+      const y = Math.random();
+      window.testControls.methodsTest.setValue({ x, y });
+      log('test4-output', `setValue() called with (${x.toFixed(3)}, ${y.toFixed(3)})`);
+    };
+
+    window.testDisable = function() {
+      const control = window.testControls.methodsTest;
+      if (control.isEnabled()) {
+        control.disable();
+        log('test4-output', 'Control disabled');
+      } else {
+        control.enable();
+        log('test4-output', 'Control enabled');
+      }
+    };
+
+    window.testHide = function() {
+      const control = window.testControls.methodsTest;
+      if (control.isVisible()) {
+        control.hide();
+        log('test4-output', 'Control hidden');
+      } else {
+        control.show();
+        log('test4-output', 'Control shown');
+      }
+    };
+
+    // Run all tests
+    test1();
+    test2();
+    test3();
+    test4();
+
+    console.log('All CanvasControl tests initialized');
+    console.log('ControlRegistry has canvas?', ControlRegistry.has('canvas'));
+  </script>
+</body>
+</html>
