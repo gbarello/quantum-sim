@@ -304,7 +304,8 @@
         // Mock simulation
         const mockSimulation = {
             gridSize: 128,
-            measurementRadiusMultiplier: 10
+            measurementRadius: 0.2,  // Physical units (default)
+            dx: 0.02                  // Spatial step size
         };
 
         // Helper to create gradient background
@@ -400,11 +401,13 @@
             128
         );
 
-        let circleRadius = 10;
+        let circleRadius = 10;  // In grid units (for slider)
 
         function renderCircle() {
             drawGradientBackground(circleCtx, 512, 512);
-            circlePanel.render(circleCtx, { ...mockSimulation, measurementRadiusMultiplier: circleRadius }, performance.now());
+            // Convert circleRadius (grid units) to physical units for the simulation
+            const physicalRadius = circleRadius * mockSimulation.dx;
+            circlePanel.render(circleCtx, { ...mockSimulation, measurementRadius: physicalRadius }, performance.now());
             requestAnimationFrame(renderCircle);
         }
         renderCircle();

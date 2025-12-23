@@ -482,26 +482,6 @@ main {
   min-width: 0;
 }
 
-/* Target position selector and its inputs */
-[data-control-id="position-selector"] {
-  order: 1;
-}
-
-[data-control-id="position-x"],
-[data-control-id="position-y"] {
-  order: 2;
-}
-
-/* Target momentum selector and its inputs */
-[data-control-id="momentum-selector"] {
-  order: 3;
-}
-
-[data-control-id="momentum-x"],
-[data-control-id="momentum-y"] {
-  order: 4;
-}
-
 /* Apply grid layout to Initial Conditions panel */
 /* On mobile: stack everything vertically (default block layout) */
 @media (max-width: 767px) {
@@ -516,6 +496,8 @@ main {
   [data-control-id="momentum-x"],
   [data-control-id="momentum-y"],
   [data-control-id="packet-size"],
+  [data-control-id="dx"],
+  [data-control-id="grid-size"],
   [data-control-id="reset"] {
     grid-row: auto !important;
     grid-column: auto !important;
@@ -607,9 +589,21 @@ main {
   grid-column: 1 / -1 !important;
 }
 
-/* Reset: row 7, spans both columns */
-[data-control-id="reset"] {
+/* Spatial Resolution (dx): row 7, spans both columns */
+[data-control-id="dx"] {
   grid-row: 7 !important;
+  grid-column: 1 / -1 !important;
+}
+
+/* Grid Size: row 8, spans both columns */
+[data-control-id="grid-size"] {
+  grid-row: 8 !important;
+  grid-column: 1 / -1 !important;
+}
+
+/* Reset: row 9, spans both columns */
+[data-control-id="reset"] {
+  grid-row: 9 !important;
   grid-column: 1 / -1 !important;
 }
 

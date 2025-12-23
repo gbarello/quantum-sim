@@ -2,6 +2,11 @@
  * main.js - Main application entry point
  *
  * Coordinates the quantum simulation, visualization, and user controls
+ *
+ * IMPORTANT: Configuration uses dx as PRIMARY parameter
+ * - dx (spatial resolution) is specified directly
+ * - domainSize is derived as: domainSize = gridSize × dx
+ * - This allows changing grid resolution without affecting physics
  */
 
 import { QuantumSimulation } from './quantum.js';
@@ -13,8 +18,9 @@ import { ControlsManager } from './controls/ControlsManager.js';
  */
 const config = {
   // Grid settings
-  gridSize: 128,           // N�N grid (must be power of 2)
-  domainSize: 10.0,        // Physical size (arbitrary units)
+  gridSize: 128,           // N�N grid (must be power of 2 for FFT)
+  dx: 0.078125,            // Physical spatial step size (PRIMARY parameter)
+  // Note: domainSize is derived as gridSize � dx = 10.0
 
   // Physics constants (natural units: =1, m=1)
   hbar: 1.0,
@@ -66,8 +72,12 @@ class QuantumPlaygroundApp {
       this.resizeCanvas(canvas);
       window.addEventListener('resize', () => this.resizeCanvas(canvas));
 
-      // Calculate spatial step
-      const dx = config.domainSize / config.gridSize;
+      // Get spatial step (now primary parameter)
+      const dx = config.dx;
+
+      // Derived: domain size = gridSize � dx
+      const domainSize = config.gridSize * dx;
+      console.log(`Domain size: ${domainSize.toFixed(4)} (= ${config.gridSize} � ${dx.toFixed(6)})`);
 
       // Check stability condition: dt < 2m*dx�/
       const stabilityLimit = (2 * config.mass * dx * dx) / config.hbar;
@@ -104,9 +114,9 @@ class QuantumPlaygroundApp {
 
       // Note: Visualization mode will be set from control defaults below
 
-      // Initialize controls manager
+      // Initialize controls manager (pass 'this' so it can update simulation reference on recreation)
       console.log('Creating controls manager...');
-      this.controlsManager = new ControlsManager(this.simulation, this.visualizer);
+      this.controlsManager = new ControlsManager(this.simulation, this.visualizer, null, this);
 
       // Get controls root element and initialize
       const controlsRoot = document.getElementById('controls-root');
@@ -217,7 +227,13 @@ class QuantumPlaygroundApp {
       const stepsPerFrame = config.stepsPerFrame;
 
       for (let i = 0; i < stepsPerFrame; i++) {
-        this.simulation.step();
+        try {
+          this.simulation.step();
+        } catch (error) {
+          console.error('Error during simulation step:', error);
+          this.controlsManager.setState({ isPlaying: false });
+          break;
+        }
       }
     }
 

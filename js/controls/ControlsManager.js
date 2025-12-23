@@ -31,6 +31,7 @@ import { TabManager } from './TabManager.js';
 import { ControlPanel } from './ControlPanel.js';
 import { defaultControlsConfig } from './defaultConfig.js';
 import { ControlRegistry } from './ControlRegistry.js';
+import { QuantumSimulation } from '../quantum.js';
 
 // Import control types to register them
 import { SliderControl } from './types/SliderControl.js';
@@ -47,8 +48,9 @@ export class ControlsManager {
    * @param {QuantumSimulation} simulation - The quantum simulation instance
    * @param {Visualizer} visualizer - The visualization instance
    * @param {Object} config - Configuration object (defaults to defaultControlsConfig)
+   * @param {Object} app - Optional reference to the main app (for updating simulation reference on reset)
    */
-  constructor(simulation, visualizer, config = null) {
+  constructor(simulation, visualizer, config = null, app = null) {
     // Validate required dependencies
     if (!simulation) {
       throw new Error('ControlsManager: simulation is required');
@@ -61,6 +63,7 @@ export class ControlsManager {
     this.simulation = simulation;
     this.visualizer = visualizer;
     this.config = config || defaultControlsConfig;
+    this.app = app; // Store app reference for updating simulation on recreation
 
     // State management
     // Note: Initial condition defaults will be loaded from control config after initialization
@@ -74,7 +77,11 @@ export class ControlsManager {
       // These will be overwritten by control defaults during initialization
       initialPosition: { x: 0.5, y: 0.5 },
       initialMomentum: { x: 0.5, y: 0.5 },
-      packetSize: 2.56
+      packetSize: 2.56,
+
+      // Grid configuration
+      gridSize: 128,
+      dx: 0.078125
     };
 
     // TabManager and panels
@@ -240,14 +247,31 @@ export class ControlsManager {
       this.state.packetSize = packetSizeControl.getValue();
     }
 
+    // Load grid size from grid-size control
+    const gridSizeControl = this.getControl('grid-size');
+    if (gridSizeControl && gridSizeControl.getValue) {
+      this.state.gridSize = parseInt(gridSizeControl.getValue());
+    }
+
+    // Load dx from dx control
+    const dxControl = this.getControl('dx');
+    if (dxControl && dxControl.getValue) {
+      this.state.dx = parseFloat(dxControl.getValue());
+    }
+
     // Initialize text input fields to match canvas selectors
     this.updatePositionDisplay();
     this.updateMomentumDisplay();
 
+    // Validate dx against stability
+    this.validateDx();
+
     console.log('Loaded initial state from controls:', {
       position: this.state.initialPosition,
       momentum: this.state.initialMomentum,
-      packetSize: this.state.packetSize
+      packetSize: this.state.packetSize,
+      gridSize: this.state.gridSize,
+      dx: this.state.dx
     });
   }
 
@@ -559,6 +583,49 @@ export class ControlsManager {
   }
 
   /**
+   * Validate dx against the stability condition
+   * Stability: dt * timeScale < 2*m*dx²/ℏ
+   * So: dx > sqrt(dt * timeScale * ℏ / (2*m))
+   */
+  validateDx() {
+    const dxControl = this.getControl('dx');
+    if (!dxControl || !this.simulation) return;
+
+    const dx = this.state.dx;
+    const dt = this.simulation.dt;
+    const timeScale = this.simulation.timeScale;
+    const hbar = this.simulation.hbar;
+    const mass = this.simulation.mass;
+
+    // Calculate minimum safe dx
+    const minDx = Math.sqrt((dt * timeScale * hbar) / (2 * mass));
+    const stabilityLimit = (2 * mass * dx * dx) / hbar;
+
+    // Check stability condition
+    if (dt * timeScale >= stabilityLimit) {
+      // Unstable - mark field as invalid with red styling
+      if (dxControl.inputElement) {
+        dxControl.inputElement.classList.add('input-invalid');
+        dxControl.inputElement.classList.remove('input-valid');
+      }
+      if (dxControl.validationMessage) {
+        dxControl.validationMessage.textContent = `Unstable: dx must be > ${minDx.toFixed(6)} for stability`;
+        dxControl.validationMessage.style.display = 'block';
+      }
+    } else {
+      // Stable - clear invalid state
+      if (dxControl.inputElement) {
+        dxControl.inputElement.classList.remove('input-invalid');
+        dxControl.inputElement.classList.add('input-valid');
+      }
+      if (dxControl.validationMessage) {
+        dxControl.validationMessage.textContent = '';
+        dxControl.validationMessage.style.display = 'none';
+      }
+    }
+  }
+
+  /**
    * Get current state
    * @returns {Object} Copy of current state
    */
@@ -582,6 +649,7 @@ export class ControlsManager {
    */
   togglePlayPause() {
     this.state.isPlaying = !this.state.isPlaying;
+    console.log(`Play/Pause toggled: isPlaying = ${this.state.isPlaying}`);
     return this.state.isPlaying;
   }
 
@@ -598,10 +666,11 @@ export class ControlsManager {
     // Get grid parameters
     const gridSize = this.simulation.gridSize;
     const dx = this.simulation.dx;
+    const domainSize = this.simulation.domainSize;
 
-    // Convert normalized position (0-1) to grid coordinates
-    const centerX = this.state.initialPosition.x * gridSize;
-    const centerY = this.state.initialPosition.y * gridSize;
+    // Convert normalized position (0-1) to physical coordinates
+    const centerX = this.state.initialPosition.x * domainSize;
+    const centerY = this.state.initialPosition.y * domainSize;
 
     // Convert normalized momentum (0-1) to physical momentum
     // Map 0-1 to -5 to +5 for momentum range
@@ -610,8 +679,9 @@ export class ControlsManager {
     const momentumY = (this.state.initialMomentum.y - 0.5) * 10;
 
     // Convert packet size to physical width
-    // packetSize is a multiplier, actual width = packetSize * dx * 3
-    const width = this.state.packetSize * dx * 3;
+    // packetSize is a multiplier, base width is 5% of domain (domainSize/20)
+    // This ensures the wavepacket scales with the physical domain
+    const width = this.state.packetSize * (domainSize / 20);
 
     return {
       centerX,
@@ -624,11 +694,83 @@ export class ControlsManager {
 
   /**
    * Reset the simulation to initial conditions
-   * Uses current state values for position, momentum, and packet size
+   * Uses current state values for position, momentum, packet size, grid size, and dx
+   * If grid size or dx has changed, recreates the simulation
    */
   handleReset() {
     if (!this.simulation) return;
 
+    const newGridSize = this.state.gridSize;
+    const newDx = this.state.dx;
+
+    // Check if we need to recreate the simulation due to grid size or dx change
+    const needsRecreation = (
+      newGridSize !== this.simulation.gridSize ||
+      Math.abs(newDx - this.simulation.dx) > 1e-10
+    );
+
+    if (needsRecreation) {
+      console.log(`Recreating simulation: gridSize ${this.simulation.gridSize} → ${newGridSize}, dx ${this.simulation.dx.toFixed(6)} → ${newDx.toFixed(6)}`);
+
+      // Store old simulation parameters we want to preserve
+      const dt = this.simulation.dt;
+      const hbar = this.simulation.hbar;
+      const mass = this.simulation.mass;
+      const boundaryCondition = this.simulation.boundaryCondition;
+      const timeScale = this.simulation.timeScale;
+      const potentialType = this.simulation.potentialType;
+      const potentialStrengthScale = this.simulation.potentialStrengthScale;
+      const measurementRadius = this.simulation.measurementRadius;
+
+      // Create new simulation with new grid size and dx
+      this.simulation = new QuantumSimulation(
+        newGridSize,
+        newDx,
+        dt,
+        hbar,
+        mass,
+        boundaryCondition,
+        timeScale
+      );
+
+      // Restore other simulation settings
+      this.simulation.setPotentialType(potentialType);
+      this.simulation.setPotentialStrengthScale(potentialStrengthScale);
+      this.simulation.setMeasurementRadius(measurementRadius);
+
+      // Update visualizer to use new simulation
+      if (this.visualizer) {
+        this.visualizer.simulation = this.simulation;
+        this.visualizer.resize(); // Resize in case aspect ratio changed
+      }
+
+      // Update main app reference if available
+      if (this.app) {
+        this.app.simulation = this.simulation;
+        console.log('Updated app.simulation reference');
+      } else {
+        console.warn('No app reference available to update!');
+      }
+
+      // Now initialize with the new parameters
+      this._initializeSimulationWithCurrentState();
+
+      // Validate dx again with the new simulation
+      this.validateDx();
+
+      console.log(`New domain size: ${this.simulation.domainSize.toFixed(4)} (= ${newGridSize} × ${newDx.toFixed(6)})`);
+    } else {
+      // Grid size and dx unchanged, just reinitialize the wavefunction
+      this._initializeSimulationWithCurrentState();
+    }
+  }
+
+  /**
+   * Initialize simulation wavefunction with current state values
+   * Helper method used by handleReset()
+   * @private
+   */
+  _initializeSimulationWithCurrentState() {
     // Get simulation parameters from current state (uses consistent conversion)
     const params = this.getSimulationParametersFromState();
 
@@ -716,12 +858,16 @@ export class ControlsManager {
 
     const { x: gridX, y: gridY } = gridCoords;
 
+    // Convert grid coordinates to physical coordinates
+    const physX = gridX * this.simulation.dx;
+    const physY = gridY * this.simulation.dx;
+
     // Set measurement in progress
     this.state.measurementInProgress = true;
 
-    // Perform measurement
+    // Perform measurement (using physical coordinates)
     try {
-      const result = this.simulation.measure(gridX, gridY);
+      const result = this.simulation.measure(physX, physY);
 
       if (result && result.found) {
         // Increment measurement count

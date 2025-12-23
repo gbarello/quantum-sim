@@ -127,7 +127,8 @@ function createMockContext() {
 function createMockSimulation() {
     return {
         gridSize: 128,
-        measurementRadiusMultiplier: 10,
+        measurementRadius: 0.2,  // Physical units
+        dx: 0.02,                 // Spatial step size: 0.2 / 0.02 = 10 grid units
         potentialType: 'harmonic'
     };
 }
@@ -400,7 +401,7 @@ runner.test('MeasurementCirclePanel: render() draws circle when active', () => {
     // With cellSize = 512/128 = 4, center is at 4 * 64.5 = 258
     assert(x > 250 && x < 270);
     assert(y > 250 && y < 270);
-    // Radius should be measurementRadiusMultiplier * cellSize = 10 * 4 = 40
+    // Radius should be (measurementRadius / dx) * cellSize = (0.2 / 0.02) * 4 = 10 * 4 = 40
     assert(radius > 35 && radius < 45);
 });
 

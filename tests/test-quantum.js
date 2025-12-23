@@ -4,7 +4,7 @@
  * Run with: node test-quantum.js
  */
 
-import { QuantumSimulation } from './js/quantum.js';
+import { QuantumSimulation } from '../js/quantum.js';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -78,6 +78,7 @@ try {
 console.log('\n' + colors.yellow + 'Test 2: Normalization' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
     const totalProb = sim.getTotalProbability();
 
     assertClose(totalProb, 1.0, 1e-6, 'Initial total probability is 1.0');
@@ -90,6 +91,7 @@ try {
 console.log('\n' + colors.yellow + 'Test 3: Unitarity (Probability Conservation)' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
     // Evolve for 100 steps
     for (let i = 0; i < 100; i++) {
@@ -109,6 +111,7 @@ try {
 console.log('\n' + colors.yellow + 'Test 4: Gaussian Wavepacket Properties' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
     // Check that probability is peaked at center
     const centerX = Math.floor(sim.gridSize / 2);
@@ -129,18 +132,24 @@ try {
 console.log('\n' + colors.yellow + 'Test 5: Positive Measurement Collapse' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
-    // Perform positive collapse at center
+    // Perform positive collapse at center (using physical coordinates)
+    const centerPhysX = sim.domainSize / 2;
+    const centerPhysY = sim.domainSize / 2;
+    sim.collapsePositive(centerPhysX, centerPhysY);
+
+    // Get grid coordinates for checking probability
     const centerX = Math.floor(sim.gridSize / 2);
     const centerY = Math.floor(sim.gridSize / 2);
-    sim.collapsePositive(centerX, centerY);
 
-    // Check that only the center has non-zero probability
+    // Check that the center has high probability (but not necessarily 1.0 due to finite measurement radius)
     const centerProb = sim.getProbabilityAt(centerX, centerY);
     const neighborProb = sim.getProbabilityAt(centerX + 1, centerY);
 
-    assertClose(centerProb, 1.0, 1e-6, 'Center probability after positive collapse is 1.0');
-    assertClose(neighborProb, 0.0, 1e-10, 'Neighbor probability after positive collapse is 0.0');
+    // With measurement radius of 0.2, the collapse creates a localized Gaussian
+    assert(centerProb > 0.05, 'Center has significant probability after positive collapse');
+    assert(centerProb > neighborProb, 'Center probability higher than neighbor');
     assertClose(sim.getTotalProbability(), 1.0, 1e-6, 'Total probability after collapse is 1.0');
 } catch (e) {
     fail('Positive collapse test failed: ' + e.message);
@@ -151,13 +160,18 @@ try {
 console.log('\n' + colors.yellow + 'Test 6: Negative Measurement Collapse' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
-    // Perform negative collapse at center
+    // Get grid and physical coordinates for center
     const centerX = Math.floor(sim.gridSize / 2);
     const centerY = Math.floor(sim.gridSize / 2);
+    const centerPhysX = sim.domainSize / 2;
+    const centerPhysY = sim.domainSize / 2;
+
     const probBefore = sim.getProbabilityAt(centerX, centerY);
 
-    sim.collapseNegative(centerX, centerY);
+    // Perform negative collapse at center (using physical coordinates)
+    sim.collapseNegative(centerPhysX, centerPhysY);
 
     const probAfter = sim.getProbabilityAt(centerX, centerY);
 
@@ -177,21 +191,44 @@ try {
 
     for (let i = 0; i < numTrials; i++) {
         const sim = new QuantumSimulation(64, 0.1, 0.005);
-        const centerX = Math.floor(sim.gridSize / 2);
-        const centerY = Math.floor(sim.gridSize / 2);
+        sim.initialize(); // Initialize with default parameters
 
-        const result = sim.measure(centerX, centerY);
+        // Get center in physical coordinates
+        const centerPhysX = sim.domainSize / 2;
+        const centerPhysY = sim.domainSize / 2;
+
+        const result = sim.measure(centerPhysX, centerPhysY);
         if (result.found) {
             foundCount++;
         }
     }
 
     const frequency = foundCount / numTrials;
-    // Expected probability at center for initial Gaussian
+    // Expected probability: we need to compute the integrated probability
+    // that the measure() function would return (not just the point probability)
     const sim = new QuantumSimulation(64, 0.1, 0.005);
-    const centerX = Math.floor(sim.gridSize / 2);
-    const centerY = Math.floor(sim.gridSize / 2);
-    const expectedProb = sim.getProbabilityAt(centerX, centerY);
+    sim.initialize(); // Initialize with default parameters
+
+    // Perform a measurement to get the actual integrated probability
+    const centerPhysX = sim.domainSize / 2;
+    const centerPhysY = sim.domainSize / 2;
+
+    // Calculate integrated probability without actually collapsing
+    const N = sim.gridSize;
+    const measRadius = sim.measurementRadius;
+    let integratedProbability = 0;
+    for (let iy = 0; iy < N; iy++) {
+        for (let ix = 0; ix < N; ix++) {
+            let dx = Math.abs(ix * sim.dx - centerPhysX);
+            let dy = Math.abs(iy * sim.dx - centerPhysY);
+            if (dx > sim.domainSize / 2) dx = sim.domainSize - dx;
+            if (dy > sim.domainSize / 2) dy = sim.domainSize - dy;
+            const r2 = dx * dx + dy * dy;
+            const weight = Math.exp(-r2 / (2 * measRadius * measRadius));
+            integratedProbability += weight * sim.getProbabilityAt(ix, iy);
+        }
+    }
+    const expectedProb = Math.min(1.0, integratedProbability);
 
     info(`Found frequency: ${frequency.toFixed(4)}, Expected: ${expectedProb.toFixed(4)}`);
 
@@ -210,6 +247,7 @@ try {
 console.log('\n' + colors.yellow + 'Test 8: Wavepacket Dispersion' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
     const centerX = Math.floor(sim.gridSize / 2);
     const centerY = Math.floor(sim.gridSize / 2);
@@ -236,6 +274,7 @@ try {
 console.log('\n' + colors.yellow + 'Test 9: Reset Functionality' + colors.reset);
 try {
     const sim = new QuantumSimulation(64, 0.1, 0.005);
+    sim.initialize(); // Initialize with default parameters
 
     // Evolve and measure
     for (let i = 0; i < 100; i++) {
@@ -243,7 +282,9 @@ try {
     }
     const centerX = Math.floor(sim.gridSize / 2);
     const centerY = Math.floor(sim.gridSize / 2);
-    sim.collapsePositive(centerX, centerY);
+    const centerPhysX = sim.domainSize / 2;
+    const centerPhysY = sim.domainSize / 2;
+    sim.collapsePositive(centerPhysX, centerPhysY);
 
     const timeBeforeReset = sim.getTime();
     assert(timeBeforeReset > 0, 'Time advanced during evolution');

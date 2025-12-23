@@ -26,7 +26,7 @@ import { Panel } from '../core/Panel.js';
  * Panel for rendering the measurement radius indicator.
  *
  * The indicator is a red circle centered at the hover position, with radius
- * determined by the simulation's measurementRadiusMultiplier parameter.
+ * determined by the simulation's measurementRadius parameter (in physical units).
  *
  * Rendering is pixel-perfect identical to the original Visualizer.drawMeasurementCircle()
  * implementation (lines 431-455).
@@ -118,7 +118,7 @@ export class MeasurementCirclePanel extends Panel {
      * Renders the measurement circle to the canvas.
      *
      * This method draws a red circle at the current hover position, with radius
-     * determined by the simulation's measurementRadiusMultiplier parameter.
+     * determined by the simulation's measurementRadius parameter (in physical units).
      *
      * The rendering is identical to the original Visualizer.drawMeasurementCircle()
      * implementation (lines 431-455).
@@ -127,8 +127,10 @@ export class MeasurementCirclePanel extends Panel {
      * 1. Check if hover is active
      * 2. Calculate cell size
      * 3. Convert grid coordinates to canvas coordinates (center of cell)
-     * 4. Get measurement radius from simulation
-     * 5. Draw red circle with the specified radius
+     * 4. Get measurement radius from simulation (physical units)
+     * 5. Convert to grid units by dividing by dx
+     * 6. Convert to canvas pixels by multiplying by cellSize
+     * 7. Draw red circle with the calculated pixel radius
      *
      * Note: The circle is centered at (x + 0.5, y + 0.5) in grid coordinates
      * to position it at the center of the cell rather than the corner.
@@ -152,11 +154,14 @@ export class MeasurementCirclePanel extends Panel {
         const canvasX = this.bounds.x + (x + 0.5) * cellSize;
         const canvasY = this.bounds.y + (y + 0.5) * cellSize;
 
-        // Get measurement radius from simulation (in grid units)
-        const measurementRadius = simulation.measurementRadiusMultiplier || 10;
+        // Get measurement radius from simulation (in physical units)
+        const measurementRadiusPhysical = simulation.measurementRadius || 0.2;
+
+        // Convert from physical units to grid units
+        const measurementRadiusGrid = measurementRadiusPhysical / simulation.dx;
 
         // Convert to canvas pixels
-        const radiusInPixels = measurementRadius * cellSize;
+        const radiusInPixels = measurementRadiusGrid * cellSize;
 
         ctx.save();
 

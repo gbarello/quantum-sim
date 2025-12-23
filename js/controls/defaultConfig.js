@@ -187,6 +187,68 @@ export const defaultControlsConfig = {
             manager.state.packetSize = val;
             manager.updatePacketSizeDisplay();
           }
+        },
+
+        // dx Input
+        {
+          type: 'textinput',
+          id: 'dx',
+          label: 'Spatial Resolution (dx)',
+          inputType: 'number',
+          min: 0.001,
+          max: 1.0,
+          step: 0.001,
+          value: 0.078125,
+          precision: 6,
+          validate: (value) => {
+            const dx = parseFloat(value);
+            if (isNaN(dx)) {
+              return { valid: false, message: 'Must be a number' };
+            }
+            if (dx <= 0) {
+              return { valid: false, message: 'Must be positive' };
+            }
+            // Check stability condition: dx > sqrt(dt * timeScale * ℏ / (2*m))
+            // We'll need to get these values from the simulation
+            // For now, just return valid and let the control manager do the validation
+            return { valid: true, message: '' };
+          },
+          onChange: (val, manager) => {
+            manager.state.dx = parseFloat(val);
+            manager.validateDx();
+          }
+        },
+
+        // Grid Size Input
+        {
+          type: 'textinput',
+          id: 'grid-size',
+          label: 'Grid Size',
+          inputType: 'number',
+          min: 16,
+          max: 512,
+          step: 1,
+          value: 128,
+          precision: 0,
+          validate: (value) => {
+            const num = parseInt(value);
+            if (isNaN(num)) {
+              return { valid: false, message: 'Must be a number' };
+            }
+            if (num < 16 || num > 512) {
+              return { valid: false, message: 'Must be between 16 and 512' };
+            }
+            // Check if power of 2
+            if ((num & (num - 1)) !== 0) {
+              return { valid: false, message: 'Must be power of 2 (e.g., 64, 128, 256)' };
+            }
+            return { valid: true, message: '' };
+          },
+          onChange: (val, manager) => {
+            manager.state.gridSize = parseInt(val);
+            // Trigger dx validation since stability depends on dx
+            manager.validateDx();
+          }
         }
       ]
     },
@@ -223,25 +285,22 @@ export const defaultControlsConfig = {
           }
         },
 
-        // Measurement Radius Slider
+        // Measurement Radius Slider (in physical units)
         {
           type: 'slider',
           id: 'measurement-radius',
           label: 'Measurement Size',
-          min: 0,
-          max: 200,
-          value: 100,  // Default: maps to radius 10.0
+          min: 5,      // 0.05 in physical units
+          max: 200,    // 2.0 in physical units
+          value: 20,   // Default: 0.2 in physical units
           step: 1,
           unit: '',
-          // Transform slider value (0 to 200) to radius (1 to 100) logarithmically
-          // value = 0 -> radius = 1
-          // value = 100 -> radius = 10 (default)
-          // value = 200 -> radius = 100
-          transform: (val) => Math.pow(10, val / 100),
+          // Transform slider value to physical radius (0.05 to 2.0)
+          transform: (val) => val / 100,  // Divide by 100 to get physical units
           // Format for display
-          format: (val) => val.toFixed(1),
+          format: (val) => val.toFixed(2),
           showLabels: true,
-          labels: { min: '1', max: '100' },
+          labels: { min: '0.05', max: '2.0' },
           onChange: (val, manager) => {
             manager.simulation.setMeasurementRadius(val);
           }

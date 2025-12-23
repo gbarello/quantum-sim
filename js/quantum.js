@@ -7,6 +7,13 @@
  * - Gaussian wavepacket initialization
  * - Quantum measurements with wavefunction collapse
  * - Periodic boundary conditions
+ *
+ * COORDINATE SYSTEM AND UNITS:
+ * - dx: Physical spatial step size (PRIMARY PARAMETER, independent of grid size)
+ * - gridSize: Number of grid points per dimension (must be power of 2 for FFT)
+ * - domainSize: Physical domain size (DERIVED: domainSize = gridSize × dx)
+ * - All positions, widths, and radii are specified in physical units
+ * - Potential features use fixed physical scales (independent of domain size)
  */
 
 import { ComplexGrid, FFT2D, normalize, Complex } from './utils.js';
@@ -50,8 +57,8 @@ export class QuantumSimulation {
         this.boundaryCondition = boundaryCondition;
         this.timeScale = timeScale;
 
-        // Measurement parameters
-        this.measurementRadiusMultiplier = 1.5; // Default: 1.5 grid cells
+        // Measurement parameters (in physical units)
+        this.measurementRadius = 0.2; // Default: 0.2 in physical units
 
         // Calculate effective time step
         this.dtEffective = dt * timeScale;
@@ -80,11 +87,11 @@ export class QuantumSimulation {
         // Precompute momentum space evolution operator
         this._precomputeMomentumOperator();
 
-        // Potential well parameters
+        // Potential well parameters (in fixed physical units)
         this.potentialType = 'none'; // Options: 'none', 'single', 'double', 'sinusoid'
         this.potentialStrength = 50.0; // Depth of potential well
         this.potentialStrengthScale = 1.0; // Scale multiplier for potential strength (0.1 to 10)
-        this.potentialWidth = this.domainSize / 4; // Standard deviation = 1/4 of domain
+        this.potentialWidth = 2.0; // Fixed physical width (in natural units, independent of grid)
 
         // Precompute potential grid
         this.potential = new Float64Array(gridSize * gridSize);
@@ -243,18 +250,18 @@ export class QuantumSimulation {
      * Initialize wavefunction with a Gaussian wavepacket
      * �(x,y,0) = A exp(-(x-x�)�/4ò - (y-y�)�/4ò) exp(i(px�x + py�y)/h)
      *
-     * @param {object} params - Initialization parameters
-     *   - centerX, centerY: Center position (default: grid center)
-     *   - width: Gaussian width � (default: 3*dx)
+     * @param {object} params - Initialization parameters (ALL IN PHYSICAL UNITS)
+     *   - centerX, centerY: Center position in physical coordinates (default: domainSize/2)
+     *   - width: Gaussian width � in physical units (default: domainSize/20)
      *   - momentumX, momentumY: Initial momentum (default: 0)
      */
     initialize(params = {}) {
         const {
-            centerX = this.gridSize / 2,
-            centerY = this.gridSize / 2,
-            width = 3 * this.dx,
-            momentumX = 0,
-            momentumY = 0
+            centerX = this.domainSize / 2,   // Physical units
+            centerY = this.domainSize / 2,   // Physical units
+            width = this.domainSize / 20,    // Physical units (5% of domain)
+            momentumX = 0,                   // Physical units
+            momentumY = 0                    // Physical units
         } = params;
 
         const N = this.gridSize;
@@ -262,21 +269,21 @@ export class QuantumSimulation {
 
         // Debug logging
         console.log('QuantumSimulation.initialize() called with:');
-        console.log('  centerX (grid):', centerX, ', centerY (grid):', centerY);
+        console.log('  centerX (physical):', centerX, ', centerY (physical):', centerY);
         console.log('  width (physical):', width, ', sigma:', sigma);
         console.log('  momentumX:', momentumX, ', momentumY:', momentumY);
-        console.log('  dx:', this.dx, ', gridSize:', N);
+        console.log('  dx:', this.dx, ', gridSize:', N, ', domainSize:', this.domainSize);
 
         // Build Gaussian wavepacket
         for (let iy = 0; iy < N; iy++) {
             for (let ix = 0; ix < N; ix++) {
-                // Physical position
+                // Physical position of this grid point
                 const x = ix * this.dx;
                 const y = iy * this.dx;
 
-                // Center position
-                const x0 = centerX * this.dx;
-                const y0 = centerY * this.dx;
+                // Center position (already in physical units)
+                const x0 = centerX;
+                const y0 = centerY;
 
                 // Gaussian envelope
                 const dx2 = (x - x0) * (x - x0);
@@ -295,7 +302,9 @@ export class QuantumSimulation {
         }
 
         // Debug: Check wavefunction before normalization
-        const centerVal = this.psi.get(Math.floor(centerX), Math.floor(centerY));
+        const centerGridX = Math.floor(centerX / this.dx);
+        const centerGridY = Math.floor(centerY / this.dx);
+        const centerVal = this.psi.get(centerGridX, centerGridY);
         const centerAmp = Math.sqrt(centerVal.re * centerVal.re + centerVal.im * centerVal.im);
         const normBefore = Math.sqrt(this.psi.sumAbs2());
         console.log('  Before normalization:');
@@ -410,11 +419,17 @@ export class QuantumSimulation {
      *   - found: true if particle detected in region, false if not detected
      *   - probability: integrated probability over measurement region
      */
+    /**
+     * Perform quantum measurement at physical coordinates (x, y)
+     * @param {number} x - Physical x-coordinate
+     * @param {number} y - Physical y-coordinate
+     * @returns {object} - {found: boolean, probability: number}
+     */
     measure(x, y) {
         const N = this.gridSize;
-        const sigma = this.measurementRadiusMultiplier * this.dx;
-        const x0 = x * this.dx;
-        const y0 = y * this.dx;
+        const sigma = this.measurementRadius; // Physical units
+        const x0 = x; // Already in physical units
+        const y0 = y; // Already in physical units
 
         // Integrate probability over the measurement region
         // Sum probability weighted by Gaussian detector sensitivity
@@ -470,16 +485,16 @@ export class QuantumSimulation {
      * This is the correct Born rule collapse where the wavefunction is projected
      * onto the measurement region weighted by the detector sensitivity.
      *
-     * @param {number} x - Grid x-coordinate
-     * @param {number} y - Grid y-coordinate
+     * @param {number} x - Physical x-coordinate
+     * @param {number} y - Physical y-coordinate
      */
     collapsePositive(x, y) {
         const N = this.gridSize;
 
         // Detector response function (Gaussian sensitivity)
-        const sigma = this.measurementRadiusMultiplier * this.dx;
-        const x0 = x * this.dx;
-        const y0 = y * this.dx;
+        const sigma = this.measurementRadius; // Physical units
+        const x0 = x; // Already in physical units
+        const y0 = y; // Already in physical units
 
         // Apply projection: ψ_new(r) = ψ_old(r) × detector_response(r)
         for (let iy = 0; iy < N; iy++) {
@@ -519,14 +534,21 @@ export class QuantumSimulation {
      * @param {number} x - Grid x-coordinate
      * @param {number} y - Grid y-coordinate
      */
+    /**
+     * Collapse wavefunction based on negative measurement result
+     * "Particle not found at (x,y)"
+     *
+     * @param {number} x - Physical x-coordinate
+     * @param {number} y - Physical y-coordinate
+     */
     collapseNegative(x, y) {
         const N = this.gridSize;
 
         // Zero out a small Gaussian region to avoid sharp discontinuities
-        // Width controlled by measurementRadiusMultiplier
-        const sigma = this.measurementRadiusMultiplier * this.dx;
-        const x0 = x * this.dx;
-        const y0 = y * this.dx;
+        // Width controlled by measurementRadius (physical units)
+        const sigma = this.measurementRadius; // Physical units
+        const x0 = x; // Already in physical units
+        const y0 = y; // Already in physical units
 
         for (let iy = 0; iy < N; iy++) {
             for (let ix = 0; ix < N; ix++) {
@@ -671,8 +693,12 @@ export class QuantumSimulation {
      * Controls the size of the Gaussian region affected by measurements
      * @param {number} multiplier - Radius in units of grid cell size (default: 1.5)
      */
-    setMeasurementRadius(multiplier) {
-        this.measurementRadiusMultiplier = Math.max(0.5, Math.min(10.0, multiplier));
+    /**
+     * Set the measurement radius in physical units
+     * @param {number} radius - Measurement radius in physical units (0.05 to 2.0)
+     */
+    setMeasurementRadius(radius) {
+        this.measurementRadius = Math.max(0.05, Math.min(2.0, radius));
     }
 
     /**

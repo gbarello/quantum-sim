@@ -296,12 +296,12 @@ export class VisualizerV2 {
   /**
    * Set measurement radius for hover circle
    * Note: The measurement circle panel reads the radius directly from
-   * simulation.measurementRadiusMultiplier, so no explicit setting is needed.
+   * simulation.measurementRadius (in physical units), so no explicit setting is needed.
    * This method exists for API compatibility.
-   * @param {number} radius - Radius in grid units
+   * @param {number} radius - Radius in physical units
    */
   setMeasurementRadius(radius) {
-    // The MeasurementCirclePanel reads radius from simulation.measurementRadiusMultiplier
+    // The MeasurementCirclePanel reads radius from simulation.measurementRadius
     // directly during render, so no action needed here
   }
 
