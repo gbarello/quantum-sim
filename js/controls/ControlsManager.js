@@ -81,7 +81,7 @@ export class ControlsManager {
 
       // Grid configuration
       gridSize: 128,
-      dx: 0.078125
+      domainSize: 10.0
     };
 
     // TabManager and panels
@@ -247,31 +247,33 @@ export class ControlsManager {
       this.state.packetSize = packetSizeControl.getValue();
     }
 
-    // Load grid size from grid-size control
-    const gridSizeControl = this.getControl('grid-size');
-    if (gridSizeControl && gridSizeControl.getValue) {
-      this.state.gridSize = parseInt(gridSizeControl.getValue());
+    // Load grid points from grid-points control
+    const gridPointsControl = this.getControl('grid-points');
+    if (gridPointsControl && gridPointsControl.getValue) {
+      this.state.gridSize = parseInt(gridPointsControl.getValue());
     }
 
-    // Load dx from dx control
-    const dxControl = this.getControl('dx');
-    if (dxControl && dxControl.getValue) {
-      this.state.dx = parseFloat(dxControl.getValue());
+    // Load domain size from domain-size control
+    const domainSizeControl = this.getControl('domain-size');
+    if (domainSizeControl && domainSizeControl.getValue) {
+      this.state.domainSize = parseFloat(domainSizeControl.getValue());
     }
 
     // Initialize text input fields to match canvas selectors
     this.updatePositionDisplay();
     this.updateMomentumDisplay();
 
-    // Validate dx against stability
-    this.validateDx();
+    // Validate stability with initial values
+    this.validateStability();
 
+    const dx = this.state.domainSize / this.state.gridSize;
     console.log('Loaded initial state from controls:', {
       position: this.state.initialPosition,
       momentum: this.state.initialMomentum,
       packetSize: this.state.packetSize,
       gridSize: this.state.gridSize,
-      dx: this.state.dx
+      domainSize: this.state.domainSize,
+      dx: dx.toFixed(6)
     });
   }
 
@@ -583,15 +585,21 @@ export class ControlsManager {
   }
 
   /**
-   * Validate dx against the stability condition
-   * Stability: dt * timeScale < 2*m*dx²/ℏ
-   * So: dx > sqrt(dt * timeScale * ℏ / (2*m))
+   * Validate stability based on grid points and domain size
+   * Calculates dx = domainSize / gridPoints
+   * Stability condition: dt * timeScale < 2*m*dx²/ℏ
+   * Shows warning (not error) on both controls if unstable
    */
-  validateDx() {
-    const dxControl = this.getControl('dx');
-    if (!dxControl || !this.simulation) return;
+  validateStability() {
+    const gridPointsControl = this.getControl('grid-points');
+    const domainSizeControl = this.getControl('domain-size');
 
-    const dx = this.state.dx;
+    if (!gridPointsControl || !domainSizeControl || !this.simulation) return;
+
+    const gridPoints = this.state.gridSize;
+    const domainSize = this.state.domainSize;
+    const dx = domainSize / gridPoints;
+
     const dt = this.simulation.dt;
     const timeScale = this.simulation.timeScale;
     const hbar = this.simulation.hbar;
@@ -603,24 +611,23 @@ export class ControlsManager {
 
     // Check stability condition
     if (dt * timeScale >= stabilityLimit) {
-      // Unstable - mark field as invalid with red styling
-      if (dxControl.inputElement) {
-        dxControl.inputElement.classList.add('input-invalid');
-        dxControl.inputElement.classList.remove('input-valid');
+      // Unstable - show warning on both controls
+      const warningMessage = `⚠️ Numerically unstable: dx=${dx.toFixed(6)} (need dx>${minDx.toFixed(6)})`;
+
+      // Show warning on both controls
+      if (gridPointsControl._setWarning) {
+        gridPointsControl._setWarning(warningMessage);
       }
-      if (dxControl.validationMessage) {
-        dxControl.validationMessage.textContent = `Unstable: dx must be > ${minDx.toFixed(6)} for stability`;
-        dxControl.validationMessage.style.display = 'block';
+      if (domainSizeControl._setWarning) {
+        domainSizeControl._setWarning(warningMessage);
       }
     } else {
-      // Stable - clear invalid state
-      if (dxControl.inputElement) {
-        dxControl.inputElement.classList.remove('input-invalid');
-        dxControl.inputElement.classList.add('input-valid');
+      // Stable - clear warnings
+      if (gridPointsControl._setValid) {
+        gridPointsControl._setValid();
       }
-      if (dxControl.validationMessage) {
-        dxControl.validationMessage.textContent = '';
-        dxControl.validationMessage.style.display = 'none';
+      if (domainSizeControl._setValid) {
+        domainSizeControl._setValid();
       }
     }
   }
@@ -663,10 +670,10 @@ export class ControlsManager {
       throw new Error('ControlsManager: simulation not available');
     }
 
-    // Get grid parameters
-    const gridSize = this.simulation.gridSize;
-    const dx = this.simulation.dx;
-    const domainSize = this.simulation.domainSize;
+    // Get grid parameters from state (not simulation, as state may have newer values)
+    const gridSize = this.state.gridSize;
+    const domainSize = this.state.domainSize;
+    const dx = domainSize / gridSize;
 
     // Convert normalized position (0-1) to physical coordinates
     const centerX = this.state.initialPosition.x * domainSize;
@@ -679,9 +686,9 @@ export class ControlsManager {
     const momentumY = (this.state.initialMomentum.y - 0.5) * 10;
 
     // Convert packet size to physical width
-    // packetSize is a multiplier, base width is 5% of domain (domainSize/20)
-    // This ensures the wavepacket scales with the physical domain
-    const width = this.state.packetSize * (domainSize / 20);
+    // packetSize is in absolute physical units, independent of domain size
+    // This ensures the wavepacket maintains its physical size as domain changes
+    const width = this.state.packetSize;
 
     return {
       centerX,
@@ -694,14 +701,16 @@ export class ControlsManager {
 
   /**
    * Reset the simulation to initial conditions
-   * Uses current state values for position, momentum, packet size, grid size, and dx
+   * Uses current state values for position, momentum, packet size, grid size, and domain size
+   * Calculates dx = domainSize / gridSize
    * If grid size or dx has changed, recreates the simulation
    */
   handleReset() {
     if (!this.simulation) return;
 
     const newGridSize = this.state.gridSize;
-    const newDx = this.state.dx;
+    const newDomainSize = this.state.domainSize;
+    const newDx = newDomainSize / newGridSize;
 
     // Check if we need to recreate the simulation due to grid size or dx change
     const needsRecreation = (
@@ -755,8 +764,8 @@ export class ControlsManager {
       // Now initialize with the new parameters
       this._initializeSimulationWithCurrentState();
 
-      // Validate dx again with the new simulation
-      this.validateDx();
+      // Validate stability again with the new simulation
+      this.validateStability();
 
       console.log(`New domain size: ${this.simulation.domainSize.toFixed(4)} (= ${newGridSize} × ${newDx.toFixed(6)})`);
     } else {
@@ -975,7 +984,14 @@ export class ControlsManager {
       this.state.elapsedTime = this.simulation.time;
     }
 
-    // Update all display controls (they pull their values via getValue)
+    // Update FPS display if it exists
+    const fpsDisplay = this.persistentControls.get('fps-display');
+    if (fpsDisplay && this.app && typeof this.app.getFPS === 'function') {
+      const fps = this.app.getFPS();
+      fpsDisplay.setValue(Math.round(fps));
+    }
+
+    // Update all display controls in panels (they pull their values via getValue)
     this.panels.forEach(panel => {
       panel.update();
     });

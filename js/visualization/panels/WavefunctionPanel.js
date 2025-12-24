@@ -113,6 +113,9 @@ export class WavefunctionPanel extends Panel {
         // Calculate cell size in physical pixels
         const cellSize = physicalWidth / gridSize;
 
+        // Get dx for normalization relative to grid spacing
+        const dx = simulation.dx;
+
         // Render each grid cell
         for (let gy = 0; gy < gridSize; gy++) {
             for (let gx = 0; gx < gridSize; gx++) {
@@ -122,8 +125,8 @@ export class WavefunctionPanel extends Panel {
                     im: psi.getIm(gx, gy)
                 };
 
-                // Convert complex value to RGB color
-                const [r, g, b] = this.complexToColor(psiValue);
+                // Convert complex value to RGB color (with dx-relative normalization)
+                const [r, g, b] = this.complexToColor(psiValue, dx, gridSize);
 
                 // Calculate pixel range for this grid cell (in physical pixels)
                 const startX = Math.floor(gx * cellSize);
@@ -159,7 +162,11 @@ export class WavefunctionPanel extends Panel {
      * - Amplitude (magnitude) → Saturation and Lightness
      *
      * The mapping includes several enhancements:
-     * - Square root boost for amplitude to improve visibility of dim regions
+     * - Probability density normalization: amplitude is |ψ|/dx (not |ψ|*dx)
+     * - This accounts for discrete normalization (Σ|ψ|² = 1) scaling as |ψ| ~ dx
+     * - Makes brightness grid-independent regardless of grid size or dx
+     * - Brightness scale constant ensures perceptible colors
+     * - Square root boost (gamma correction) for amplitude to improve visibility of dim regions
      * - Configurable saturation scale for better contrast
      * - Variable lightness based on amplitude
      *
@@ -172,20 +179,26 @@ export class WavefunctionPanel extends Panel {
      * @param {Object} psi - Complex wavefunction value
      * @param {number} psi.re - Real part
      * @param {number} psi.im - Imaginary part
+     * @param {number} dx - Grid spacing (for consistent normalization)
+     * @param {number} gridSize - Grid size (for brightness compensation)
      * @returns {Array<number>} [r, g, b] color values (0-255)
      *
      * @example
      * // Real positive number
-     * const color1 = panel.complexToColor({ re: 1.0, im: 0.0 });
+     * const color1 = panel.complexToColor({ re: 1.0, im: 0.0 }, 0.078, 128);
      * // Returns reddish color [~255, ~128, ~128]
      *
      * // Imaginary positive number
-     * const color2 = panel.complexToColor({ re: 0.0, im: 1.0 });
+     * const color2 = panel.complexToColor({ re: 0.0, im: 1.0 }, 0.078, 128);
      * // Returns yellowish color [~255, ~255, ~128]
      */
-    complexToColor(psi) {
+    complexToColor(psi, dx, gridSize) {
         // Calculate amplitude (magnitude) and phase (angle)
-        const amplitude = Math.sqrt(psi.re * psi.re + psi.im * psi.im);
+        // The wavefunction uses discrete normalization: Σ|ψ|² = 1
+        // For a Gaussian with physical width σ, this gives |ψ| ~ dx/σ
+        // To get grid-independent visualization, we scale as probability density: |ψ|/dx
+        const rawAmplitude = Math.sqrt(psi.re * psi.re + psi.im * psi.im);
+        const amplitude = rawAmplitude / dx;  // Division, not multiplication!
         const phase = Math.atan2(psi.im, psi.re); // Range: [-π, π]
 
         // Convert phase to hue (0-360°)
@@ -195,12 +208,16 @@ export class WavefunctionPanel extends Panel {
         // phase = π/2 maps to 90° (yellow, imaginary positive)
         let hue = (phase * 180 / Math.PI + 360) % 360;
 
+        // Brightness scale constant (tuned for good visibility)
+        // Since we divide by dx, amplitude represents probability density (grid-independent)
+        const brightnessScale = 1;
+
         // Handle different visualization modes
         if (this.config.visualizationMode === 'probability') {
             // Grayscale based on probability density |ψ|²
             // Apply gamma correction for better visibility
             const probability = amplitude * amplitude;
-            const boosted = Math.pow(probability * this.config.saturationScale * 50, 0.5);
+            const boosted = Math.pow(probability * this.config.saturationScale * brightnessScale, 0.5);
             const gray = Math.floor(Math.min(255, boosted * 255));
             return [gray, gray, gray];
         }
@@ -208,7 +225,7 @@ export class WavefunctionPanel extends Panel {
         // For 'full' and 'phase' modes: match the contrast of probability mode
         // Use the same gamma correction and scaling as probability mode
         const probability = amplitude * amplitude;
-        const boosted = Math.pow(probability * this.config.saturationScale * 50, 0.5);
+        const boosted = Math.pow(probability * this.config.saturationScale * brightnessScale, 0.5);
 
         // Convert to lightness (0-100 range for HSL)
         // Map the same way probability maps to gray, but to lightness scale

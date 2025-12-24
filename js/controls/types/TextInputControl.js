@@ -214,7 +214,13 @@ class TextInputControl extends BaseControl {
 
             // Update display
             this._updateInputDisplay(value);
-            this._setValid();
+
+            // Check if there's a warning message
+            if (validation.warning) {
+                this._setWarning(validation.warning);
+            } else {
+                this._setValid();
+            }
 
             // Emit change event with just the value (similar to SliderControl)
             this.emit('change', value);
@@ -232,7 +238,7 @@ class TextInputControl extends BaseControl {
 
     /**
      * Validate a value
-     * @returns {Object} {valid: boolean, message: string}
+     * @returns {Object} {valid: boolean, message: string, warning?: string}
      */
     _validate(value) {
         // Empty value check
@@ -293,12 +299,29 @@ class TextInputControl extends BaseControl {
      */
     _setValid() {
         if (this.inputElement) {
-            this.inputElement.classList.remove('input-invalid');
+            this.inputElement.classList.remove('input-invalid', 'input-warning');
             this.inputElement.classList.add('input-valid');
         }
         if (this.validationMessage) {
             this.validationMessage.textContent = '';
             this.validationMessage.style.display = 'none';
+            this.validationMessage.classList.remove('warning', 'error');
+        }
+    }
+
+    /**
+     * Set warning state with visual feedback
+     */
+    _setWarning(message) {
+        if (this.inputElement) {
+            this.inputElement.classList.remove('input-invalid', 'input-valid');
+            this.inputElement.classList.add('input-warning');
+        }
+        if (this.validationMessage) {
+            this.validationMessage.textContent = message;
+            this.validationMessage.style.display = 'block';
+            this.validationMessage.classList.remove('error');
+            this.validationMessage.classList.add('warning');
         }
     }
 
@@ -309,12 +332,14 @@ class TextInputControl extends BaseControl {
         this.isValid = false;
 
         if (this.inputElement) {
-            this.inputElement.classList.remove('input-valid');
+            this.inputElement.classList.remove('input-valid', 'input-warning');
             this.inputElement.classList.add('input-invalid');
         }
         if (this.validationMessage) {
             this.validationMessage.textContent = message;
             this.validationMessage.style.display = 'block';
+            this.validationMessage.classList.remove('warning');
+            this.validationMessage.classList.add('error');
         }
     }
 
@@ -325,11 +350,12 @@ class TextInputControl extends BaseControl {
         this.isValid = true;
 
         if (this.inputElement) {
-            this.inputElement.classList.remove('input-valid', 'input-invalid');
+            this.inputElement.classList.remove('input-valid', 'input-invalid', 'input-warning');
         }
         if (this.validationMessage) {
             this.validationMessage.textContent = '';
             this.validationMessage.style.display = 'none';
+            this.validationMessage.classList.remove('warning', 'error');
         }
     }
 

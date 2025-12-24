@@ -3,10 +3,10 @@
  *
  * Coordinates the quantum simulation, visualization, and user controls
  *
- * IMPORTANT: Configuration uses dx as PRIMARY parameter
- * - dx (spatial resolution) is specified directly
- * - domainSize is derived as: domainSize = gridSize × dx
- * - This allows changing grid resolution without affecting physics
+ * IMPORTANT: Configuration uses domainSize as PRIMARY parameter
+ * - domainSize (physical domain size) is specified directly
+ * - dx (spatial resolution) is derived as: dx = domainSize / gridSize
+ * - This allows intuitive control of the physical domain size
  */
 
 import { QuantumSimulation } from './quantum.js';
@@ -19,8 +19,8 @@ import { ControlsManager } from './controls/ControlsManager.js';
 const config = {
   // Grid settings
   gridSize: 128,           // N�N grid (must be power of 2 for FFT)
-  dx: 0.078125,            // Physical spatial step size (PRIMARY parameter)
-  // Note: domainSize is derived as gridSize � dx = 10.0
+  domainSize: 10.0,        // Physical domain size (PRIMARY parameter)
+  // Note: dx is derived as domainSize / gridSize = 0.078125
 
   // Physics constants (natural units: =1, m=1)
   hbar: 1.0,
@@ -53,6 +53,13 @@ class QuantumPlaygroundApp {
     this.controlsManager = null;
     this.lastFrameTime = 0;
     this.animationFrameId = null;
+
+    // FPS tracking and limiting
+    this.targetFPS = 30;
+    this.frameInterval = 1000 / this.targetFPS;
+    this.frameCount = 0;
+    this.fpsLastTime = 0;
+    this.currentFPS = 0;
   }
 
   /**
@@ -72,12 +79,12 @@ class QuantumPlaygroundApp {
       this.resizeCanvas(canvas);
       window.addEventListener('resize', () => this.resizeCanvas(canvas));
 
-      // Get spatial step (now primary parameter)
-      const dx = config.dx;
+      // Get domain size (now primary parameter)
+      const domainSize = config.domainSize;
 
-      // Derived: domain size = gridSize � dx
-      const domainSize = config.gridSize * dx;
-      console.log(`Domain size: ${domainSize.toFixed(4)} (= ${config.gridSize} � ${dx.toFixed(6)})`);
+      // Derived: dx = domainSize / gridSize
+      const dx = domainSize / config.gridSize;
+      console.log(`Spatial resolution dx: ${dx.toFixed(6)} (= ${domainSize.toFixed(4)} / ${config.gridSize})`);
 
       // Check stability condition: dt < 2m*dx�/
       const stabilityLimit = (2 * config.mass * dx * dx) / config.hbar;
@@ -208,17 +215,40 @@ class QuantumPlaygroundApp {
   }
 
   /**
-   * Main animation loop
+   * Main animation loop with frame rate limiting
    */
   mainLoop(currentTime) {
     this.animationFrameId = requestAnimationFrame((time) => this.mainLoop(time));
 
-    // Calculate delta time
-    const deltaTime = (currentTime - this.lastFrameTime) / 1000; // Convert to seconds
-    this.lastFrameTime = currentTime;
+    // Calculate time since last frame
+    const elapsed = currentTime - this.lastFrameTime;
 
-    // Update controls manager (updates display controls)
+    // Frame rate limiting: skip frame if not enough time has passed
+    if (elapsed < this.frameInterval) {
+      return;
+    }
+
+    // Update last frame time, accounting for any drift
+    this.lastFrameTime = currentTime - (elapsed % this.frameInterval);
+
+    // FPS tracking
+    this.frameCount++;
+    if (this.fpsLastTime === 0) {
+      this.fpsLastTime = currentTime;
+    }
+
+    // Update FPS calculation every 500ms for responsive display
+    if (currentTime - this.fpsLastTime >= 500) {
+      const realTimeElapsed = (currentTime - this.fpsLastTime) / 1000;
+      this.currentFPS = this.frameCount / realTimeElapsed;
+
+      this.frameCount = 0;
+      this.fpsLastTime = currentTime;
+    }
+
+    // Update controls manager (updates display controls including FPS)
     if (this.controlsManager) {
+      const deltaTime = elapsed / 1000; // Convert to seconds
       this.controlsManager.update(deltaTime);
     }
 
@@ -281,6 +311,13 @@ class QuantumPlaygroundApp {
       <p style="margin: 0;">${message}</p>
     `;
     document.body.appendChild(errorDiv);
+  }
+
+  /**
+   * Get current FPS
+   */
+  getFPS() {
+    return this.currentFPS;
   }
 
   /**

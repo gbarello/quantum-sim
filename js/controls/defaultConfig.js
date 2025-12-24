@@ -51,6 +51,16 @@ export const defaultControlsConfig = {
         btn.setText(isPlaying ? 'Pause' : 'Play');
         btn.setIcon(isPlaying ? '⏸' : '▶');
       }
+    },
+
+    // FPS Display
+    {
+      type: 'display',
+      id: 'fps-display',
+      label: 'FPS',
+      value: '0',
+      unit: '',
+      precision: 0
     }
   ],
 
@@ -189,41 +199,11 @@ export const defaultControlsConfig = {
           }
         },
 
-        // dx Input
+        // Grid Points Input
         {
           type: 'textinput',
-          id: 'dx',
-          label: 'Spatial Resolution (dx)',
-          inputType: 'number',
-          min: 0.001,
-          max: 1.0,
-          step: 0.001,
-          value: 0.078125,
-          precision: 6,
-          validate: (value) => {
-            const dx = parseFloat(value);
-            if (isNaN(dx)) {
-              return { valid: false, message: 'Must be a number' };
-            }
-            if (dx <= 0) {
-              return { valid: false, message: 'Must be positive' };
-            }
-            // Check stability condition: dx > sqrt(dt * timeScale * ℏ / (2*m))
-            // We'll need to get these values from the simulation
-            // For now, just return valid and let the control manager do the validation
-            return { valid: true, message: '' };
-          },
-          onChange: (val, manager) => {
-            manager.state.dx = parseFloat(val);
-            manager.validateDx();
-          }
-        },
-
-        // Grid Size Input
-        {
-          type: 'textinput',
-          id: 'grid-size',
-          label: 'Grid Size',
+          id: 'grid-points',
+          label: 'Grid Points',
           inputType: 'number',
           min: 16,
           max: 512,
@@ -246,8 +226,36 @@ export const defaultControlsConfig = {
           },
           onChange: (val, manager) => {
             manager.state.gridSize = parseInt(val);
-            // Trigger dx validation since stability depends on dx
-            manager.validateDx();
+            // Validate stability when grid points change
+            manager.validateStability();
+          }
+        },
+
+        // Size Input (physical domain size)
+        {
+          type: 'textinput',
+          id: 'domain-size',
+          label: 'Size',
+          inputType: 'number',
+          min: 0.1,
+          max: 50.0,
+          step: 0.1,
+          value: 10.0,
+          precision: 3,
+          validate: (value) => {
+            const size = parseFloat(value);
+            if (isNaN(size)) {
+              return { valid: false, message: 'Must be a number' };
+            }
+            if (size <= 0) {
+              return { valid: false, message: 'Must be positive' };
+            }
+            return { valid: true, message: '' };
+          },
+          onChange: (val, manager) => {
+            manager.state.domainSize = parseFloat(val);
+            // Validate stability when domain size changes
+            manager.validateStability();
           }
         }
       ]

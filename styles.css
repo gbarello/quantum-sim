@@ -489,6 +489,7 @@ main {
     display: block !important;
   }
 
+  /* On mobile, disable the grid layout and stack everything vertically */
   [data-control-id="position-selector"],
   [data-control-id="position-x"],
   [data-control-id="position-y"],
@@ -498,6 +499,8 @@ main {
   [data-control-id="packet-size"],
   [data-control-id="dx"],
   [data-control-id="grid-size"],
+  [data-control-id="grid-points"],
+  [data-control-id="domain-size"],
   [data-control-id="reset"] {
     grid-row: auto !important;
     grid-column: auto !important;
@@ -563,47 +566,56 @@ main {
   position: relative;
 }
 
-/* Momentum selector: row 4, column 1, spans 2 rows */
+/* Momentum selector: row 3, column 1, spans 2 rows (FIXED: was row 4) */
 [data-control-id="momentum-selector"] {
-  grid-row: 4 / 6 !important;
+  grid-row: 3 / 5 !important;
   grid-column: 1 !important;
   margin-top: var(--spacing-md);
 }
 
-/* Momentum X: row 4, column 2 */
+/* Momentum X: row 3, column 2 (FIXED: was row 4) */
 [data-control-id="momentum-x"] {
-  grid-row: 4 !important;
+  grid-row: 3 !important;
   grid-column: 2 !important;
   margin-top: var(--spacing-md);
 }
 
-/* Momentum Y: row 5, column 2 */
+/* Momentum Y: row 4, column 2 (FIXED: was row 5) */
 [data-control-id="momentum-y"] {
-  grid-row: 5 !important;
+  grid-row: 4 !important;
   grid-column: 2 !important;
 }
 
-/* Packet size: row 6, spans both columns */
+/* Packet size: row 5, spans both columns (FIXED: was row 6) */
 [data-control-id="packet-size"] {
-  grid-row: 6 !important;
+  grid-row: 5 !important;
   grid-column: 1 / -1 !important;
 }
 
-/* Spatial Resolution (dx): row 7, spans both columns */
+/*
+ * Additional controls below will auto-place in consecutive rows (6, 7, 8...)
+ * No need to hardcode every control's position - just let CSS Grid flow naturally
+ * This makes it easier to add/remove controls without renumbering everything
+ */
+
+/* Spatial Resolution (dx): auto-places after packet-size */
 [data-control-id="dx"] {
-  grid-row: 7 !important;
   grid-column: 1 / -1 !important;
 }
 
-/* Grid Size: row 8, spans both columns */
-[data-control-id="grid-size"] {
-  grid-row: 8 !important;
+/* Grid Size: auto-places after dx */
+[data-control-id="grid-size"],
+[data-control-id="grid-points"] {
   grid-column: 1 / -1 !important;
 }
 
-/* Reset: row 9, spans both columns */
+/* Domain Size: auto-places after grid-size */
+[data-control-id="domain-size"] {
+  grid-column: 1 / -1 !important;
+}
+
+/* Reset: auto-places at the end */
 [data-control-id="reset"] {
-  grid-row: 9 !important;
   grid-column: 1 / -1 !important;
 }
 
@@ -940,6 +952,10 @@ main {
   border-color: var(--error-color);
 }
 
+.textinput-control .input-field.input-warning {
+  border-color: var(--warning-color);
+}
+
 .textinput-control .input-unit {
   font-size: var(--font-size-sm);
   color: var(--text-light);
@@ -951,6 +967,14 @@ main {
   font-size: var(--font-size-xs);
   color: var(--error-color);
   margin-top: var(--spacing-xs);
+}
+
+.textinput-control .input-validation-message.warning {
+  color: var(--warning-color);
+}
+
+.textinput-control .input-validation-message.error {
+  color: var(--error-color);
 }
 
 /* ============================================
