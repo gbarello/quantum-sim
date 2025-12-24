@@ -795,6 +795,46 @@ main {
   margin-top: var(--spacing-xs);
 }
 
+/* Checkbox Control */
+.checkbox-control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target-min);
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}
+
+.checkbox-label {
+  font-weight: 500;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.checkbox-input:hover {
+  transform: scale(1.05);
+}
+
+.checkbox-input:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
 /* Toggle Control */
 .toggle-control {
   display: flex;

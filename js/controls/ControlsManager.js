@@ -41,6 +41,7 @@ import { SelectControl } from './types/SelectControl.js';
 import { CanvasControl } from './types/CanvasControl.js';
 import { DisplayControl } from './types/DisplayControl.js';
 import TextInputControl from './types/TextInputControl.js';
+import { CheckboxControl } from './types/CheckboxControl.js';
 
 export class ControlsManager {
   /**
@@ -112,6 +113,7 @@ export class ControlsManager {
     ControlRegistry.register('canvas', CanvasControl);
     ControlRegistry.register('display', DisplayControl);
     ControlRegistry.register('textinput', TextInputControl);
+    ControlRegistry.register('checkbox', CheckboxControl);
   }
 
   /**

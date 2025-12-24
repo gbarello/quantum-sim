@@ -60,6 +60,9 @@ export class QuantumSimulation {
         // Measurement parameters (in physical units)
         this.measurementRadius = 0.2; // Default: 0.2 in physical units
 
+        // De-aliasing filter toggle (enabled by default)
+        this.filterEnabled = true;
+
         // Calculate effective time step
         this.dtEffective = dt * timeScale;
 
@@ -88,7 +91,7 @@ export class QuantumSimulation {
         this._precomputeMomentumOperator();
 
         // Potential well parameters (in fixed physical units)
-        this.potentialType = 'none'; // Options: 'none', 'single', 'double', 'sinusoid'
+        this.potentialType = 'none'; // Options: 'none', 'single', 'double', 'sinusoid', 'quadratic'
         this.potentialStrength = 50.0; // Depth of potential well
         this.potentialStrengthScale = 1.0; // Scale multiplier for potential strength (0.1 to 10)
         this.potentialWidth = 2.0; // Fixed physical width (in natural units, independent of grid)
@@ -115,11 +118,24 @@ export class QuantumSimulation {
      * For periodic boundary conditions with FFT, the momentum values are:
      * k[n] = 2�*n/L for n = 0, 1, ..., N/2-1, -N/2, ..., -1
      * where L = N*dx is the domain size
+     *
+     * Includes a de-aliasing filter to suppress high-frequency components
+     * that would cause FFT aliasing artifacts (cross-pattern bands).
+     * The filter uses the "2/3 rule" with smooth exponential decay.
      */
     _precomputeMomentumOperator() {
         const N = this.gridSize;
         const L = this.domainSize;
         const factor = -this.hbar * this.dtEffective / (2 * this.mass);
+
+        // Maximum momentum (Nyquist limit)
+        const kMax = Math.PI / this.dx;
+
+        // De-aliasing filter parameters
+        // Use gentle filtering starting at 0.9 of k_max to prevent severe aliasing
+        // while minimizing non-physical damping
+        const kFilter = 0.9 * kMax;
+        const filterWidth = kMax - kFilter;
 
         // Store as complex grid for element-wise multiplication
         this.momentumOperator = new ComplexGrid(N, N);
@@ -132,12 +148,26 @@ export class QuantumSimulation {
 
                 // k� = kx� + ky�
                 const k2 = kx * kx + ky * ky;
+                const k = Math.sqrt(k2);
 
                 // e^(-ihk��t/2m) = e^(i*phase) where phase = factor * k�
                 const phase = factor * k2;
 
-                // Store as complex exponential
-                this.momentumOperator.setReIm(ix, iy, Math.cos(phase), Math.sin(phase));
+                // Compute complex exponential
+                let opRe = Math.cos(phase);
+                let opIm = Math.sin(phase);
+
+                // Apply de-aliasing filter (if enabled)
+                // Very gentle exponential filter that only suppresses the highest k components
+                if (this.filterEnabled && k > kFilter) {
+                    // Gentle exponential decay to minimize unphysical damping
+                    const filterFactor = Math.exp(-Math.pow((k - kFilter) / filterWidth, 2));
+                    opRe *= filterFactor;
+                    opIm *= filterFactor;
+                }
+
+                // Store filtered operator
+                this.momentumOperator.setReIm(ix, iy, opRe, opIm);
             }
         }
     }
@@ -215,6 +245,28 @@ export class QuantumSimulation {
                         // V(y) = -V₀ * cos(2π * 3 * y / L) = -V₀ * cos(6π * y / L)
                         // This ensures periodicity: V(0) = V(L) = -V₀
                         V = -this.potentialStrength * Math.cos(6 * Math.PI * y / this.domainSize);
+                        break;
+
+                    case 'quadratic':
+                        // Quadratic (harmonic oscillator) potential centered at domain center
+                        // V(r) = k * r² where r is distance from center
+                        // Using k = potentialStrength / (2 * sigma²) for comparable scaling
+                        const centerXQuad = this.domainSize / 2;
+                        const centerYQuad = this.domainSize / 2;
+
+                        // Distance from center (handling periodic boundaries)
+                        let dx_quad = Math.abs(x - centerXQuad);
+                        let dy_quad = Math.abs(y - centerYQuad);
+
+                        if (dx_quad > this.domainSize / 2) dx_quad = this.domainSize - dx_quad;
+                        if (dy_quad > this.domainSize / 2) dy_quad = this.domainSize - dy_quad;
+
+                        const r2_quad = dx_quad * dx_quad + dy_quad * dy_quad;
+
+                        // Quadratic potential: V(r) = k * r² / (2 * sigma²)
+                        // Scale factor chosen to give reasonable well depth comparable to Gaussian
+                        const k = this.potentialStrength / (2 * sigma * sigma);
+                        V = k * r2_quad;
                         break;
 
                     default:
@@ -703,10 +755,10 @@ export class QuantumSimulation {
 
     /**
      * Set the potential type and recompute the potential grid
-     * @param {string} type - Potential type: 'none', 'single', 'double', 'sinusoid'
+     * @param {string} type - Potential type: 'none', 'single', 'double', 'sinusoid', 'quadratic'
      */
     setPotentialType(type) {
-        const validTypes = ['none', 'single', 'double', 'sinusoid'];
+        const validTypes = ['none', 'single', 'double', 'sinusoid', 'quadratic'];
         if (!validTypes.includes(type)) {
             console.warn(`Invalid potential type "${type}". Using "none".`);
             type = 'none';
@@ -742,6 +794,24 @@ export class QuantumSimulation {
 
         // Recompute the potential operator
         this._precomputePotentialOperator();
+    }
+
+    /**
+     * Enable or disable the de-aliasing filter
+     * @param {boolean} enabled - True to enable filtering, false to disable
+     */
+    setFilterEnabled(enabled) {
+        this.filterEnabled = enabled;
+        // Recompute momentum operator with new filter setting
+        this._precomputeMomentumOperator();
+    }
+
+    /**
+     * Get the current filter enabled state
+     * @returns {boolean} True if filter is enabled
+     */
+    isFilterEnabled() {
+        return this.filterEnabled;
     }
 
     /**

@@ -314,6 +314,17 @@ export const defaultControlsConfig = {
           }
         },
 
+        // De-aliasing Filter Checkbox
+        {
+          type: 'checkbox',
+          id: 'filter-enabled',
+          label: 'Anti-aliasing Filter',
+          checked: true,  // Default: enabled
+          onChange: (checked, manager) => {
+            manager.simulation.setFilterEnabled(checked);
+          }
+        },
+
         // Potential Type Radio Group
         {
           type: 'radio',
@@ -323,7 +334,8 @@ export const defaultControlsConfig = {
             { value: 'none', label: 'None' },
             { value: 'single', label: 'Single' },
             { value: 'double', label: 'Double' },
-            { value: 'sinusoid', label: 'Sin' }
+            { value: 'sinusoid', label: 'Sin' },
+            { value: 'quadratic', label: 'Quad' }
           ],
           value: 'single',  // Default selection
           layout: 'horizontal',
