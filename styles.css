@@ -957,6 +957,7 @@ main {
 
 .textinput-control .control-input {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-xs);
   position: relative;
@@ -971,7 +972,7 @@ main {
   border-radius: var(--border-radius-sm);
   background-color: var(--bg-light);
   transition: border-color var(--transition-fast);
-  min-width: 0;
+  min-width: 80px;
 }
 
 .textinput-control .input-field:hover {
@@ -1004,9 +1005,10 @@ main {
 
 .textinput-control .input-validation-message {
   display: none;
+  flex-basis: 100%;
   font-size: var(--font-size-xs);
   color: var(--error-color);
-  margin-top: var(--spacing-xs);
+  margin-top: 0;
 }
 
 .textinput-control .input-validation-message.warning {

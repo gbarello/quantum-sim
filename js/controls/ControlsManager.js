@@ -614,7 +614,7 @@ export class ControlsManager {
     // Check stability condition
     if (dt * timeScale >= stabilityLimit) {
       // Unstable - show warning on both controls
-      const warningMessage = `⚠️ Numerically unstable: dx=${dx.toFixed(6)} (need dx>${minDx.toFixed(6)})`;
+      const warningMessage = `⚠️ Unstable (dx too small)`;
 
       // Show warning on both controls
       if (gridPointsControl._setWarning) {
