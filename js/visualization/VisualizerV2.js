@@ -21,6 +21,7 @@
 import { CanvasLayout } from './core/CanvasLayout.js';
 import { WavefunctionPanel } from './panels/WavefunctionPanel.js';
 import { PotentialPlotPanel } from './panels/PotentialPlotPanel.js';
+import { PotentialOverlayPanel } from './panels/PotentialOverlayPanel.js';
 import { GridOverlayPanel } from './panels/GridOverlayPanel.js';
 import { PhaseWheelPanel } from './panels/PhaseWheelPanel.js';
 import { MeasurementFeedbackPanel } from './panels/MeasurementFeedbackPanel.js';
@@ -55,6 +56,8 @@ export class VisualizerV2 {
       showGrid: config.showGrid || false,
       showPhaseWheel: config.showPhaseWheel || false,
       showPotentialPlot: config.showPotentialPlot !== false, // Show by default
+      showPotentialOverlay: config.showPotentialOverlay === true, // Off by default
+      potentialOverlayOpacity: config.potentialOverlayOpacity || 0.5,
       gridLineColor: config.gridLineColor || 'rgba(255, 255, 255, 0.2)',
       gridLineWidth: config.gridLineWidth || 1
     };
@@ -108,7 +111,17 @@ export class VisualizerV2 {
       this.panels.potentialPlot = new PotentialPlotPanel(bounds.potentialPlot);
     }
 
-    // 3. Overlay 1: Grid overlay (if enabled)
+    // 3. Overlay 0: Potential overlay on main grid (if enabled)
+    if (this.config.showPotentialOverlay) {
+      this.panels.potentialOverlay = new PotentialOverlayPanel(
+        bounds.wavefunction,
+        {
+          opacity: this.config.potentialOverlayOpacity
+        }
+      );
+    }
+
+    // 4. Overlay 1: Grid overlay (if enabled)
     if (this.config.showGrid) {
       this.panels.gridOverlay = new GridOverlayPanel(
         bounds.wavefunction,
@@ -173,6 +186,7 @@ export class VisualizerV2 {
     const renderOrder = [
       'wavefunction',      // Background: main visualization
       'potentialPlot',     // Side panel: potential profile
+      'potentialOverlay',  // Overlay: 2D potential on grid
       'gridOverlay',       // Overlay: grid lines
       'phaseWheel',        // Overlay: phase reference wheel
       'measurementFeedback', // Overlay: measurement flash
@@ -267,6 +281,26 @@ export class VisualizerV2 {
   setPotentialVisible(visible) {
     this.config.showPotentialPlot = visible;
     this.createPanels(); // Recreate to add/remove plot
+  }
+
+  /**
+   * Toggle potential overlay visibility (2D overlay on main grid)
+   * @param {boolean} visible - Whether to show potential overlay
+   */
+  setPotentialOverlayVisible(visible) {
+    this.config.showPotentialOverlay = visible;
+    this.createPanels(); // Recreate to add/remove overlay
+  }
+
+  /**
+   * Set potential overlay opacity
+   * @param {number} opacity - Opacity value (0-1)
+   */
+  setPotentialOverlayOpacity(opacity) {
+    this.config.potentialOverlayOpacity = Math.max(0, Math.min(1, opacity));
+    if (this.panels.potentialOverlay) {
+      this.panels.potentialOverlay.config.opacity = this.config.potentialOverlayOpacity;
+    }
   }
 
   /**

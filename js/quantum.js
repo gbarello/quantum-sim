@@ -92,7 +92,7 @@ export class QuantumSimulation {
 
         // Potential well parameters (in fixed physical units)
         this.potentialType = 'none'; // Options: 'none', 'single', 'double', 'sinusoid', 'quadratic'
-        this.potentialStrength = 50.0; // Depth of potential well
+        this.potentialStrength = 1.0; // Depth of potential well (reduced for quantum tunneling)
         this.potentialStrengthScale = 1.0; // Scale multiplier for potential strength (0.1 to 10)
         this.potentialWidth = 2.0; // Fixed physical width (in natural units, independent of grid)
 
@@ -179,6 +179,12 @@ export class QuantumSimulation {
     _precomputePotential() {
         const N = this.gridSize;
         const sigma = this.potentialWidth;
+
+        // Special case: freehand mode preserves user-drawn potential
+        if (this.potentialType === 'freehand') {
+            // Don't recompute - preserve user-drawn potential
+            return;
+        }
 
         for (let iy = 0; iy < N; iy++) {
             for (let ix = 0; ix < N; ix++) {
@@ -372,6 +378,42 @@ export class QuantumSimulation {
         console.log('  After normalization:');
         console.log('    Norm:', normAfter.toFixed(6));
         console.log('    Total probability:', totalProb.toFixed(8));
+
+        // If freehand potential is active, attenuate wavefunction in high-potential regions
+        // This ensures the wavefunction respects the drawn potential walls
+        if (this.potentialType === 'freehand') {
+            console.log('  Applying freehand potential attenuation...');
+
+            // Attenuation strength parameter (higher = stronger suppression in walls)
+            // Using 10.0 for strong attenuation while maintaining smoothness
+            const attenuationStrength = 10.0;
+
+            for (let iy = 0; iy < N; iy++) {
+                for (let ix = 0; ix < N; ix++) {
+                    const V = this.potential[iy * N + ix];
+
+                    // Apply Gaussian attenuation: exp(-strength * |V|)
+                    // For V=0: attenuation=1 (no change)
+                    // For high |V|: attenuation→0 (strong suppression)
+                    // Using abs(V) to handle both positive barriers and negative wells
+                    const attenuation = Math.exp(-attenuationStrength * Math.abs(V));
+
+                    // Apply attenuation to both real and imaginary parts
+                    const re = this.psi.getRe(ix, iy);
+                    const im = this.psi.getIm(ix, iy);
+                    this.psi.setReIm(ix, iy, re * attenuation, im * attenuation);
+                }
+            }
+
+            // Renormalize after attenuation to maintain unit probability
+            this.renormalize();
+
+            const normAfterAttenuation = Math.sqrt(this.psi.sumAbs2());
+            const totalProbAfterAttenuation = this.getTotalProbability();
+            console.log('  After attenuation and renormalization:');
+            console.log('    Norm:', normAfterAttenuation.toFixed(6));
+            console.log('    Total probability:', totalProbAfterAttenuation.toFixed(8));
+        }
 
         // Reset time
         this.time = 0;
@@ -758,7 +800,7 @@ export class QuantumSimulation {
      * @param {string} type - Potential type: 'none', 'single', 'double', 'sinusoid', 'quadratic'
      */
     setPotentialType(type) {
-        const validTypes = ['none', 'single', 'double', 'sinusoid', 'quadratic'];
+        const validTypes = ['none', 'single', 'double', 'sinusoid', 'quadratic', 'freehand'];
         if (!validTypes.includes(type)) {
             console.warn(`Invalid potential type "${type}". Using "none".`);
             type = 'none';
@@ -766,11 +808,17 @@ export class QuantumSimulation {
 
         this.potentialType = type;
 
-        // Recompute the potential grid with the new type
-        this._precomputePotential();
+        // Special handling for freehand mode
+        if (type === 'freehand') {
+            // Clear potential to start fresh drawing
+            this.clearFreehandPotential();
+        } else {
+            // Recompute the potential grid with the new type
+            this._precomputePotential();
 
-        // Recompute the potential operator
-        this._precomputePotentialOperator();
+            // Recompute the potential operator
+            this._precomputePotentialOperator();
+        }
     }
 
     /**
@@ -858,6 +906,80 @@ export class QuantumSimulation {
      */
     getPotential() {
         return this.potential;
+    }
+
+    /**
+     * Add potential at a specific grid location using Gaussian brush profile
+     * Used for freehand drawing mode
+     * @param {number} gridX - Grid X coordinate (0 to gridSize-1)
+     * @param {number} gridY - Grid Y coordinate (0 to gridSize-1)
+     * @param {number} strength - Energy value to add (can be negative for erasing)
+     * @param {number} radius - Brush radius in physical units
+     */
+    addPotentialAt(gridX, gridY, strength, radius) {
+        const N = this.gridSize;
+        const sigma = radius;
+        const x0 = gridX * this.dx;
+        const y0 = gridY * this.dx;
+
+        // Optimization: only update cells within 3σ (99.7% of Gaussian)
+        const cellRadius = Math.ceil(3 * sigma / this.dx);
+        const ixMin = Math.max(0, gridX - cellRadius);
+        const ixMax = Math.min(N - 1, gridX + cellRadius);
+        const iyMin = Math.max(0, gridY - cellRadius);
+        const iyMax = Math.min(N - 1, gridY + cellRadius);
+
+        for (let iy = iyMin; iy <= iyMax; iy++) {
+            for (let ix = ixMin; ix <= ixMax; ix++) {
+                const x = ix * this.dx;
+                const y = iy * this.dx;
+
+                // Handle periodic boundaries for distance calculation
+                let dx = Math.abs(x - x0);
+                let dy = Math.abs(y - y0);
+                if (dx > this.domainSize / 2) dx = this.domainSize - dx;
+                if (dy > this.domainSize / 2) dy = this.domainSize - dy;
+
+                const r2 = dx * dx + dy * dy;
+
+                // Gaussian brush profile: exp(-r²/(2σ²))
+                const delta = strength * Math.exp(-r2 / (2 * sigma * sigma));
+                this.potential[iy * N + ix] += delta;
+            }
+        }
+    }
+
+    /**
+     * Finalize potential changes and recompute evolution operator
+     * Call this after a series of addPotentialAt() calls (e.g., on mouseup)
+     * to update the time evolution operator with the new potential
+     */
+    finalizePotentialChanges() {
+        this._precomputePotentialOperator();
+    }
+
+    /**
+     * Clear all freehand-drawn potential and reset to zero
+     * Used when switching to freehand mode or clearing drawing
+     */
+    clearFreehandPotential() {
+        const N = this.gridSize;
+        for (let i = 0; i < N * N; i++) {
+            this.potential[i] = 0;
+        }
+        this._precomputePotentialOperator();
+    }
+
+    /**
+     * Set a uniform base potential value across the entire grid
+     * @param {number} value - Base potential value (default: 0)
+     */
+    setBasePotential(value = 0) {
+        const N = this.gridSize;
+        for (let i = 0; i < N * N; i++) {
+            this.potential[i] = value;
+        }
+        this._precomputePotentialOperator();
     }
 
     /**

@@ -96,6 +96,18 @@ export class ControlsManager {
     // Track if manager is destroyed
     this._destroyed = false;
 
+    // Drawing state for freehand potential mode
+    this.drawingState = {
+      enabled: false,        // Is drawing mode active?
+      isDrawing: false,      // Is user currently dragging?
+      lastX: null,           // Last draw position X (grid coords)
+      lastY: null,           // Last draw position Y (grid coords)
+      brushSize: 0.15,       // Brush radius in physical units
+      brushStrength: 2.0,    // Energy units (increased range -5 to 5)
+      eraseMode: false,      // Erase vs draw
+      needsOperatorUpdate: false  // Batch flag for operator updates
+    };
+
     // Register control types with the registry
     this._registerControlTypes();
   }
@@ -890,11 +902,170 @@ export class ControlsManager {
   }
 
   /**
+   * Enable drawing mode (freehand potential)
+   */
+  enableDrawingMode() {
+    this.drawingState.enabled = true;
+    if (this.visualizer && this.visualizer.canvas) {
+      this.visualizer.canvas.style.cursor = 'crosshair';
+    }
+    console.log('Drawing mode enabled');
+  }
+
+  /**
+   * Disable drawing mode
+   */
+  disableDrawingMode() {
+    this.drawingState.enabled = false;
+    this.drawingState.isDrawing = false;
+    if (this.visualizer && this.visualizer.canvas) {
+      this.visualizer.canvas.style.cursor = 'default';
+    }
+    console.log('Drawing mode disabled');
+  }
+
+  /**
+   * Set brush size in physical units
+   * @param {number} size - Brush radius in physical units
+   */
+  setBrushSize(size) {
+    this.drawingState.brushSize = size;
+  }
+
+  /**
+   * Set brush strength (energy value)
+   * @param {number} strength - Energy value to add/subtract
+   */
+  setBrushStrength(strength) {
+    this.drawingState.brushStrength = strength;
+  }
+
+  /**
+   * Set erase mode on/off
+   * @param {boolean} enabled - True to erase, false to draw
+   */
+  setEraseMode(enabled) {
+    this.drawingState.eraseMode = enabled;
+    if (this.drawingState.enabled && this.visualizer && this.visualizer.canvas) {
+      this.visualizer.canvas.style.cursor = enabled ? 'not-allowed' : 'crosshair';
+    }
+  }
+
+  /**
+   * Handle canvas drag for drawing
+   * @param {number} canvasX - Canvas X coordinate (pixels)
+   * @param {number} canvasY - Canvas Y coordinate (pixels)
+   */
+  handleCanvasDrag(canvasX, canvasY) {
+    if (!this.drawingState.enabled || !this.drawingState.isDrawing) {
+      return;
+    }
+
+    const gridCoords = this._canvasToGridCoords(canvasX, canvasY);
+    if (!gridCoords) return;
+
+    // Interpolate between last position and current position for smooth lines
+    if (this.drawingState.lastX !== null && this.drawingState.lastY !== null) {
+      this._interpolateDraw(
+        this.drawingState.lastX,
+        this.drawingState.lastY,
+        gridCoords.x,
+        gridCoords.y
+      );
+    } else {
+      // First point in stroke
+      this._applyBrushAt(gridCoords.x, gridCoords.y);
+    }
+
+    this.drawingState.lastX = gridCoords.x;
+    this.drawingState.lastY = gridCoords.y;
+    this.drawingState.needsOperatorUpdate = true;
+  }
+
+  /**
+   * Interpolate drawing between two points (Bresenham-style)
+   * @param {number} x0 - Start grid X
+   * @param {number} y0 - Start grid Y
+   * @param {number} x1 - End grid X
+   * @param {number} y1 - End grid Y
+   * @private
+   */
+  _interpolateDraw(x0, y0, x1, y1) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy), 1);
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = Math.round(x0 + dx * t);
+      const y = Math.round(y0 + dy * t);
+      this._applyBrushAt(x, y);
+    }
+  }
+
+  /**
+   * Apply brush at a specific grid location
+   * @param {number} gridX - Grid X coordinate
+   * @param {number} gridY - Grid Y coordinate
+   * @private
+   */
+  _applyBrushAt(gridX, gridY) {
+    const strength = this.drawingState.eraseMode ?
+      -this.drawingState.brushStrength :
+      this.drawingState.brushStrength;
+
+    this.simulation.addPotentialAt(
+      gridX,
+      gridY,
+      strength,
+      this.drawingState.brushSize
+    );
+  }
+
+  /**
+   * Start drawing stroke
+   * @param {number} canvasX - Canvas X coordinate (pixels)
+   * @param {number} canvasY - Canvas Y coordinate (pixels)
+   */
+  startDrawing(canvasX, canvasY) {
+    if (!this.drawingState.enabled) return;
+
+    this.drawingState.isDrawing = true;
+    this.drawingState.lastX = null;
+    this.drawingState.lastY = null;
+
+    // Draw first point
+    this.handleCanvasDrag(canvasX, canvasY);
+  }
+
+  /**
+   * End drawing stroke and finalize potential changes
+   */
+  endDrawing() {
+    if (!this.drawingState.isDrawing) return;
+
+    this.drawingState.isDrawing = false;
+    this.drawingState.lastX = null;
+    this.drawingState.lastY = null;
+
+    // Finalize the potential changes (recompute operator)
+    if (this.drawingState.needsOperatorUpdate) {
+      this.simulation.finalizePotentialChanges();
+      this.drawingState.needsOperatorUpdate = false;
+    }
+  }
+
+  /**
    * Handle canvas click for quantum measurement
    * @param {number} canvasX - Canvas X coordinate (pixels)
    * @param {number} canvasY - Canvas Y coordinate (pixels)
    */
   handleCanvasClick(canvasX, canvasY) {
+    // If in drawing mode, don't process measurements
+    if (this.drawingState.enabled) {
+      return;
+    }
+
     if (!this.simulation || !this.visualizer) return;
     if (this.state.measurementInProgress) return;
 
@@ -1028,9 +1199,9 @@ export class ControlsManager {
       fpsDisplay.setValue(Math.round(fps));
     }
 
-    // Update all display controls in panels (they pull their values via getValue)
+    // Update all display controls in panels (pass manager for conditional visibility)
     this.panels.forEach(panel => {
-      panel.update();
+      panel.update(this);
     });
   }
 

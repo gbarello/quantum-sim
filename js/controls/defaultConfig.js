@@ -335,12 +335,40 @@ export const defaultControlsConfig = {
             { value: 'single', label: 'Single' },
             { value: 'double', label: 'Double' },
             { value: 'sinusoid', label: 'Sin' },
-            { value: 'quadratic', label: 'Quad' }
+            { value: 'quadratic', label: 'Quad' },
+            { value: 'freehand', label: 'Draw' }
           ],
           value: 'single',  // Default selection
           layout: 'horizontal',
           onChange: (val, manager) => {
             manager.simulation.setPotentialType(val);
+
+            // When switching to freehand mode, auto-enable the drawing toggle
+            if (val === 'freehand') {
+              const drawingToggle = manager.getControl('drawing-mode-toggle');
+              if (drawingToggle) {
+                drawingToggle.setValue(true);
+              }
+            } else {
+              // When switching away from freehand, disable drawing mode
+              manager.disableDrawingMode();
+            }
+          }
+        },
+
+        // Drawing Mode Toggle (only visible in freehand mode)
+        {
+          type: 'checkbox',
+          id: 'drawing-mode-toggle',
+          label: 'Enable Drawing (uncheck to measure)',
+          checked: true,  // Default: enabled when in freehand mode
+          showIf: (manager) => manager.simulation.potentialType === 'freehand',
+          onChange: (checked, manager) => {
+            if (checked) {
+              manager.enableDrawingMode();
+            } else {
+              manager.disableDrawingMode();
+            }
           }
         },
 
@@ -363,8 +391,91 @@ export const defaultControlsConfig = {
           format: (val) => val.toFixed(1),
           showLabels: true,
           labels: { min: '0.1', max: '10' },
+          showIf: (manager) => manager.simulation.potentialType !== 'freehand',
           onChange: (val, manager) => {
             manager.simulation.setPotentialStrengthScale(val);
+          }
+        },
+
+        // Brush Size Slider (only visible in freehand mode)
+        {
+          type: 'slider',
+          id: 'brush-size',
+          label: 'Brush Size',
+          min: 5,
+          max: 50,
+          value: 15,  // Default: 15px -> 0.15 physical units
+          step: 1,
+          unit: 'px',
+          // Transform slider value (5-50 px) to physical size
+          transform: (val, manager) => {
+            // Convert pixels to physical units relative to domain size
+            // Use a scaling factor: 100px = domainSize
+            return (val / 100) * manager.simulation.domainSize;
+          },
+          // Format for display
+          format: (val) => val.toFixed(0),
+          showLabels: true,
+          labels: { min: '5', max: '50' },
+          showIf: (manager) => manager.simulation.potentialType === 'freehand',
+          onChange: (val, manager) => {
+            manager.setBrushSize(val);
+          }
+        },
+
+        // Brush Strength Slider (only visible in freehand mode)
+        {
+          type: 'slider',
+          id: 'brush-strength',
+          label: 'Brush Strength',
+          min: -5.0,
+          max: 5.0,
+          value: 2.0,  // Default: 2.0 (strong barriers)
+          step: 0.1,
+          unit: '',
+          showLabels: true,
+          labels: { min: '-5', max: '5' },
+          showIf: (manager) => manager.simulation.potentialType === 'freehand',
+          onChange: (val, manager) => {
+            manager.setBrushStrength(val);
+          }
+        },
+
+        // Erase Mode Checkbox (only visible in freehand mode)
+        {
+          type: 'checkbox',
+          id: 'erase-mode',
+          label: 'Erase Mode',
+          checked: false,
+          showIf: (manager) => manager.simulation.potentialType === 'freehand',
+          onChange: (checked, manager) => {
+            manager.setEraseMode(checked);
+          }
+        },
+
+        // Clear Potential Button (only visible in freehand mode)
+        {
+          type: 'button',
+          id: 'clear-potential',
+          text: 'Clear Drawing',
+          variant: 'secondary',
+          fullWidth: true,
+          showIf: (manager) => manager.simulation.potentialType === 'freehand',
+          onClick: (manager) => {
+            if (confirm('Clear all drawn potential?')) {
+              manager.simulation.clearFreehandPotential();
+            }
+          }
+        },
+
+        // Show Potential Overlay Checkbox
+        {
+          type: 'checkbox',
+          id: 'show-potential',
+          label: 'Show Potential',
+          checked: false,  // Default: hidden
+          onChange: (checked, manager) => {
+            manager.visualizer.setPotentialOverlayVisible(checked);
           }
         },
 

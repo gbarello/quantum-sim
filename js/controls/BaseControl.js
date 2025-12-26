@@ -18,6 +18,7 @@ export class BaseControl {
    * @param {boolean} [config.enabled=true] - Initial enabled state
    * @param {boolean} [config.visible=true] - Initial visibility state
    * @param {Function} [config.onChange] - Change event handler
+   * @param {Function} [config.showIf] - Conditional visibility function (manager) => boolean
    * @param {string} [config.className] - Additional CSS classes
    * @param {string} [config.tooltip] - Tooltip text
    * @param {Object} [config.attributes] - Additional HTML attributes
@@ -38,6 +39,9 @@ export class BaseControl {
     // State management
     this._enabled = config.enabled !== undefined ? config.enabled : true;
     this._visible = config.visible !== undefined ? config.visible : true;
+
+    // Conditional visibility
+    this._showIf = config.showIf || null;
 
     // DOM reference
     this.container = null;
@@ -261,6 +265,28 @@ export class BaseControl {
   update() {
     // Default implementation does nothing
     // Subclasses should override if they need to refresh their display
+  }
+
+  /**
+   * Evaluate conditional visibility and update display state
+   * @param {Object} manager - The controls manager instance for context
+   */
+  updateVisibility(manager) {
+    if (!this._showIf) {
+      // No conditional visibility, keep current state
+      return;
+    }
+
+    try {
+      const shouldShow = this._showIf(manager);
+      if (shouldShow && !this._visible) {
+        this.show();
+      } else if (!shouldShow && this._visible) {
+        this.hide();
+      }
+    } catch (error) {
+      console.error(`Error evaluating showIf for control '${this.id}':`, error);
+    }
   }
 
   /**

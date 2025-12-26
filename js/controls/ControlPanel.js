@@ -374,12 +374,19 @@ export class ControlPanel {
   /**
    * Update all controls in the panel
    * Calls update() on each control
+   * @param {Object} [manager] - Optional manager for conditional visibility evaluation
    */
-  update() {
+  update(manager = null) {
     if (this._destroyed) return;
 
     this.controls.forEach(control => {
       try {
+        // Update conditional visibility if manager is provided
+        if (manager && typeof control.updateVisibility === 'function') {
+          control.updateVisibility(manager);
+        }
+
+        // Update control display
         if (typeof control.update === 'function') {
           control.update();
         }
