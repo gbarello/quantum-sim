@@ -414,6 +414,7 @@ export class ControlsManager {
   /**
    * Draw the position selector canvas
    * Shows a grid with a crosshair at the selected position
+   * Center (0.5, 0.5) represents physical coordinate (0, 0)
    */
   drawPositionSelector() {
     const control = this.selectorCanvases.get('position-selector');
@@ -444,6 +445,30 @@ export class ControlsManager {
       ctx.lineTo(width, y);
       ctx.stroke();
     }
+
+    // Highlight center lines (representing x=0 and y=0 in physical coordinates)
+    const cx = width / 2;
+    const cy = height / 2;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+
+    // Center vertical line (x=0)
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, height);
+    ctx.stroke();
+
+    // Center horizontal line (y=0)
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(width, cy);
+    ctx.stroke();
+
+    // Draw center point
+    ctx.fillStyle = '#666';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
 
     // Draw crosshair at selected position
     const x = this.state.initialPosition.x * width;
@@ -548,14 +573,19 @@ export class ControlsManager {
    */
   updatePositionDisplay() {
     // Update text input fields to match canvas selector
+    // Transform from internal 0-1 to display (physical coordinates)
+    // Formula: display = (internal - 0.5) * domainSize
     const posXControl = this.getControl('position-x');
     const posYControl = this.getControl('position-y');
+    const domainSize = this.state.domainSize;
 
     if (posXControl && this.state.initialPosition.x !== null) {
-      posXControl.setValue(this.state.initialPosition.x);
+      const displayValue = (this.state.initialPosition.x - 0.5) * domainSize;
+      posXControl.setValue(displayValue);
     }
     if (posYControl && this.state.initialPosition.y !== null) {
-      posYControl.setValue(this.state.initialPosition.y);
+      const displayValue = (this.state.initialPosition.y - 0.5) * domainSize;
+      posYControl.setValue(displayValue);
     }
   }
 
@@ -807,14 +837,19 @@ export class ControlsManager {
   /**
    * Handle position text input changes
    * @param {string} axis - 'x' or 'y'
-   * @param {number} value - New normalized value (0-1)
+   * @param {number} value - New display value in physical coordinates (-domainSize/2 to +domainSize/2)
    */
   handlePositionTextChange(axis, value) {
-    // Update state
+    // Transform from display (physical coordinates) to internal (0-1)
+    // Formula: internal = display / domainSize + 0.5
+    const domainSize = this.state.domainSize;
+    const internalValue = value / domainSize + 0.5;
+
+    // Update state with internal value
     if (axis === 'x') {
-      this.state.initialPosition.x = value;
+      this.state.initialPosition.x = internalValue;
     } else if (axis === 'y') {
-      this.state.initialPosition.y = value;
+      this.state.initialPosition.y = internalValue;
     }
 
     // Update canvas selector to match

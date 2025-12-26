@@ -77,7 +77,8 @@ export class VisualizerV2 {
 
     // Calculate layout based on current configuration
     const potentialType = this.simulation.potentialType || 'none';
-    const showPlot = this.config.showPotentialPlot && potentialType !== 'none';
+    // Always show plot panel (it will render white background when potential is 'none')
+    const showPlot = this.config.showPotentialPlot;
 
     this.layout = new CanvasLayout(
       this.width,

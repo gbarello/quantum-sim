@@ -118,6 +118,10 @@ export class PotentialPlotPanel extends Panel {
 
         // Skip if no potential or potentialType is undefined/none
         if (!potentialType || potentialType === 'none') {
+            // Draw white background when no potential is selected
+            ctx.fillStyle = '#f5f5f5'; // Light gray background (same as other potentials)
+            ctx.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
+
             // Clear cached data
             this._cachedProfile = null;
             this._cachedRange = null;

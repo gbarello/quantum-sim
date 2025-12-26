@@ -93,32 +93,32 @@ export const defaultControlsConfig = {
           }
         },
 
-        // Position X Input
+        // Position X Input (displayed as -domainSize/2 to +domainSize/2, but stored internally as 0 to 1)
         {
           type: 'textinput',
           id: 'position-x',
           label: 'Position X',
           inputType: 'number',
-          min: 0,
-          max: 1,
+          min: -25,  // Covers full possible range (domainSize up to 50)
+          max: 25,
           step: 0.01,
-          value: 0.5,
+          value: 0,  // 0.5 internal -> 0 display (center)
           precision: 3,
           onChange: (val, manager) => {
             manager.handlePositionTextChange('x', val);
           }
         },
 
-        // Position Y Input
+        // Position Y Input (displayed as -domainSize/2 to +domainSize/2, but stored internally as 0 to 1)
         {
           type: 'textinput',
           id: 'position-y',
           label: 'Position Y',
           inputType: 'number',
-          min: 0,
-          max: 1,
+          min: -25,  // Covers full possible range (domainSize up to 50)
+          max: 25,
           step: 0.01,
-          value: 0.5,
+          value: 0,  // 0.5 internal -> 0 display (center)
           precision: 3,
           onChange: (val, manager) => {
             manager.handlePositionTextChange('y', val);
