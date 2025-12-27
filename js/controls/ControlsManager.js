@@ -32,6 +32,8 @@ import { ControlPanel } from './ControlPanel.js';
 import { defaultControlsConfig } from './defaultConfig.js';
 import { ControlRegistry } from './ControlRegistry.js';
 import { QuantumSimulation } from '../quantum.js';
+import { InteractionModeManager, InteractionMode } from './InteractionModeManager.js';
+import { CanvasEventRouter } from './CanvasEventRouter.js';
 
 // Import control types to register them
 import { SliderControl } from './types/SliderControl.js';
@@ -96,17 +98,9 @@ export class ControlsManager {
     // Track if manager is destroyed
     this._destroyed = false;
 
-    // Drawing state for freehand potential mode
-    this.drawingState = {
-      enabled: false,        // Is drawing mode active?
-      isDrawing: false,      // Is user currently dragging?
-      lastX: null,           // Last draw position X (grid coords)
-      lastY: null,           // Last draw position Y (grid coords)
-      brushSize: 0.15,       // Brush radius in physical units
-      brushStrength: 2.0,    // Energy units (increased range -5 to 5)
-      eraseMode: false,      // Erase vs draw
-      needsOperatorUpdate: false  // Batch flag for operator updates
-    };
+    // Interaction mode management
+    this.modeManager = new InteractionModeManager();
+    this.eventRouter = null; // Will be initialized in initialize()
 
     // Register control types with the registry
     this._registerControlTypes();
@@ -193,6 +187,53 @@ export class ControlsManager {
     // Load initial state from control default values
     // This ensures state matches the control panel defaults
     this._loadInitialStateFromControls();
+
+    // Create event router for canvas interactions
+    if (this.visualizer && this.visualizer.canvas) {
+      this.eventRouter = new CanvasEventRouter(
+        this.visualizer.canvas,
+        this.modeManager,
+        {
+          measurement: {
+            onClick: (x, y) => this.handleCanvasClick(x, y),
+            onMouseMove: (x, y) => this.handleCanvasHover(x, y),
+            onMouseLeave: () => this.visualizer.setHoverState?.(false)
+          },
+          freehandDraw: {
+            onMouseDown: (x, y) => this.startDrawing(x, y),
+            onMouseDrag: (x, y) => this.handleCanvasDrag(x, y),
+            onMouseUp: () => this.endDrawing(),
+            onMouseMove: (x, y) => {
+              // Optional: show brush preview
+            }
+          },
+          lineSelection: {
+            onClick: (x, y) => {
+              const linePanel = this.visualizer.panels?.lineSelection;
+              if (linePanel) {
+                linePanel.handleClick(x, y, this.simulation);
+
+                // Check if selection is complete (both points selected)
+                if (this.visualizer.hasCompleteLine()) {
+                  // Deactivate selection mode and return to measurement
+                  this.visualizer.deactivateLineSelection();
+
+                  // Reset the button to its initial state
+                  const btn = this.getControl('select-line-toggle');
+                  if (btn) {
+                    btn.setText('Select Line');
+                    btn.setVariant('secondary');
+                  }
+                }
+              }
+            },
+            onMouseMove: (x, y) => {
+              // Optional: show line preview
+            }
+          }
+        }
+      );
+    }
 
     return wrapper;
   }
@@ -905,23 +946,14 @@ export class ControlsManager {
    * Enable drawing mode (freehand potential)
    */
   enableDrawingMode() {
-    this.drawingState.enabled = true;
-    if (this.visualizer && this.visualizer.canvas) {
-      this.visualizer.canvas.style.cursor = 'crosshair';
-    }
-    console.log('Drawing mode enabled');
+    this.modeManager.setMode(InteractionMode.FREEHAND_DRAW);
   }
 
   /**
    * Disable drawing mode
    */
   disableDrawingMode() {
-    this.drawingState.enabled = false;
-    this.drawingState.isDrawing = false;
-    if (this.visualizer && this.visualizer.canvas) {
-      this.visualizer.canvas.style.cursor = 'default';
-    }
-    console.log('Drawing mode disabled');
+    this.modeManager.setMode(InteractionMode.MEASUREMENT);
   }
 
   /**
@@ -929,7 +961,10 @@ export class ControlsManager {
    * @param {number} size - Brush radius in physical units
    */
   setBrushSize(size) {
-    this.drawingState.brushSize = size;
+    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    if (state) {
+      state.brushSize = size;
+    }
   }
 
   /**
@@ -937,7 +972,10 @@ export class ControlsManager {
    * @param {number} strength - Energy value to add/subtract
    */
   setBrushStrength(strength) {
-    this.drawingState.brushStrength = strength;
+    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    if (state) {
+      state.brushStrength = strength;
+    }
   }
 
   /**
@@ -945,9 +983,9 @@ export class ControlsManager {
    * @param {boolean} enabled - True to erase, false to draw
    */
   setEraseMode(enabled) {
-    this.drawingState.eraseMode = enabled;
-    if (this.drawingState.enabled && this.visualizer && this.visualizer.canvas) {
-      this.visualizer.canvas.style.cursor = enabled ? 'not-allowed' : 'crosshair';
+    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    if (state) {
+      state.eraseMode = enabled;
     }
   }
 
@@ -957,7 +995,12 @@ export class ControlsManager {
    * @param {number} canvasY - Canvas Y coordinate (pixels)
    */
   handleCanvasDrag(canvasX, canvasY) {
-    if (!this.drawingState.enabled || !this.drawingState.isDrawing) {
+    if (!this.modeManager.isMode(InteractionMode.FREEHAND_DRAW)) {
+      return;
+    }
+
+    const state = this.modeManager.getModeState();
+    if (!state || !state.isDrawing) {
       return;
     }
 
@@ -965,10 +1008,10 @@ export class ControlsManager {
     if (!gridCoords) return;
 
     // Interpolate between last position and current position for smooth lines
-    if (this.drawingState.lastX !== null && this.drawingState.lastY !== null) {
+    if (state.lastX !== null && state.lastY !== null) {
       this._interpolateDraw(
-        this.drawingState.lastX,
-        this.drawingState.lastY,
+        state.lastX,
+        state.lastY,
         gridCoords.x,
         gridCoords.y
       );
@@ -977,9 +1020,8 @@ export class ControlsManager {
       this._applyBrushAt(gridCoords.x, gridCoords.y);
     }
 
-    this.drawingState.lastX = gridCoords.x;
-    this.drawingState.lastY = gridCoords.y;
-    this.drawingState.needsOperatorUpdate = true;
+    state.lastX = gridCoords.x;
+    state.lastY = gridCoords.y;
   }
 
   /**
@@ -1010,15 +1052,18 @@ export class ControlsManager {
    * @private
    */
   _applyBrushAt(gridX, gridY) {
-    const strength = this.drawingState.eraseMode ?
-      -this.drawingState.brushStrength :
-      this.drawingState.brushStrength;
+    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    if (!state) return;
+
+    const strength = state.eraseMode ?
+      -state.brushStrength :
+      state.brushStrength;
 
     this.simulation.addPotentialAt(
       gridX,
       gridY,
       strength,
-      this.drawingState.brushSize
+      state.brushSize
     );
   }
 
@@ -1028,11 +1073,14 @@ export class ControlsManager {
    * @param {number} canvasY - Canvas Y coordinate (pixels)
    */
   startDrawing(canvasX, canvasY) {
-    if (!this.drawingState.enabled) return;
+    if (!this.modeManager.isMode(InteractionMode.FREEHAND_DRAW)) return;
 
-    this.drawingState.isDrawing = true;
-    this.drawingState.lastX = null;
-    this.drawingState.lastY = null;
+    const state = this.modeManager.getModeState();
+    if (!state) return;
+
+    state.isDrawing = true;
+    state.lastX = null;
+    state.lastY = null;
 
     // Draw first point
     this.handleCanvasDrag(canvasX, canvasY);
@@ -1042,17 +1090,15 @@ export class ControlsManager {
    * End drawing stroke and finalize potential changes
    */
   endDrawing() {
-    if (!this.drawingState.isDrawing) return;
+    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    if (!state || !state.isDrawing) return;
 
-    this.drawingState.isDrawing = false;
-    this.drawingState.lastX = null;
-    this.drawingState.lastY = null;
+    state.isDrawing = false;
+    state.lastX = null;
+    state.lastY = null;
 
     // Finalize the potential changes (recompute operator)
-    if (this.drawingState.needsOperatorUpdate) {
-      this.simulation.finalizePotentialChanges();
-      this.drawingState.needsOperatorUpdate = false;
-    }
+    this.simulation.finalizePotentialChanges();
   }
 
   /**
@@ -1061,8 +1107,8 @@ export class ControlsManager {
    * @param {number} canvasY - Canvas Y coordinate (pixels)
    */
   handleCanvasClick(canvasX, canvasY) {
-    // If in drawing mode, don't process measurements
-    if (this.drawingState.enabled) {
+    // Only process measurements in measurement mode
+    if (!this.modeManager.isMode(InteractionMode.MEASUREMENT)) {
       return;
     }
 

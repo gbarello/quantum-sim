@@ -157,85 +157,11 @@ class QuantumPlaygroundApp {
       const totalProb = this.simulation.getTotalProbability();
       console.log(`Initial total probability: ${totalProb.toFixed(8)}`);
 
-      // Set up canvas event handlers for measurement interactions and drawing
-      let isMouseDown = false;
+      // Set mode manager reference on visualizer
+      this.visualizer.setModeManager(this.controlsManager.modeManager);
 
-      // Mouse down - start drawing
-      canvas.addEventListener('mousedown', (e) => {
-        isMouseDown = true;
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
-        this.controlsManager.startDrawing(canvasX, canvasY);
-      });
-
-      // Mouse up - end drawing
-      canvas.addEventListener('mouseup', () => {
-        isMouseDown = false;
-        this.controlsManager.endDrawing();
-      });
-
-      // Click - measurement (only if not in drawing mode)
-      canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
-        this.controlsManager.handleCanvasClick(canvasX, canvasY);
-      });
-
-      // Mouse move - handle both drawing and hover
-      canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
-
-        if (isMouseDown && this.controlsManager.drawingState.enabled) {
-          // Drawing mode
-          this.controlsManager.handleCanvasDrag(canvasX, canvasY);
-        } else {
-          // Hover mode (measurement preview)
-          this.controlsManager.handleCanvasHover(canvasX, canvasY);
-        }
-      });
-
-      // Mouse leave canvas - end drawing and clear hover
-      canvas.addEventListener('mouseleave', () => {
-        if (isMouseDown) {
-          isMouseDown = false;
-          this.controlsManager.endDrawing();
-        }
-        // Clear hover state when mouse leaves canvas
-        if (this.visualizer.setHoverState) {
-          this.visualizer.setHoverState(false);
-        }
-      });
-
-      // Touch events for mobile/tablet support
-      canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = touch.clientX - rect.left;
-        const canvasY = touch.clientY - rect.top;
-        isMouseDown = true;
-        this.controlsManager.startDrawing(canvasX, canvasY);
-      });
-
-      canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (!isMouseDown) return;
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = touch.clientX - rect.left;
-        const canvasY = touch.clientY - rect.top;
-        this.controlsManager.handleCanvasDrag(canvasX, canvasY);
-      });
-
-      canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        isMouseDown = false;
-        this.controlsManager.endDrawing();
-      });
+      // Event routing is now handled by CanvasEventRouter (initialized in ControlsManager)
+      console.log('Canvas event routing initialized via ControlsManager');
 
       // Render initial state
       this.visualizer.render();

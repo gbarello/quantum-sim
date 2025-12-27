@@ -343,14 +343,17 @@ export const defaultControlsConfig = {
           onChange: (val, manager) => {
             manager.simulation.setPotentialType(val);
 
-            // When switching to freehand mode, auto-enable the drawing toggle
+            // Mode transitions based on potential type
             if (val === 'freehand') {
+              // Switching to freehand enables drawing mode
+              manager.enableDrawingMode();
+
               const drawingToggle = manager.getControl('drawing-mode-toggle');
               if (drawingToggle) {
                 drawingToggle.setValue(true);
               }
             } else {
-              // When switching away from freehand, disable drawing mode
+              // Switching away from freehand returns to measurement mode
               manager.disableDrawingMode();
             }
           }
@@ -369,6 +372,8 @@ export const defaultControlsConfig = {
             } else {
               manager.disableDrawingMode();
             }
+
+            console.log(`Drawing mode: ${checked ? 'enabled' : 'disabled'}`);
           }
         },
 
@@ -493,6 +498,64 @@ export const defaultControlsConfig = {
             // Map "complex" to "full" for internal visualizer use
             const internalMode = val === 'complex' ? 'full' : val;
             manager.visualizer.setVisualizationMode(internalMode);
+          }
+        },
+
+        // Show 1D Plot Checkbox
+        {
+          type: 'checkbox',
+          id: 'show-bottom-plot',
+          label: 'Show 1D Plot',
+          checked: false,
+          onChange: (checked, manager) => {
+            manager.visualizer.setBottomPlotVisible(checked);
+
+            // If hiding bottom plot, also deactivate line selection
+            if (!checked && manager.visualizer.isLineSelectionActive()) {
+              manager.visualizer.deactivateLineSelection();
+
+              const btn = manager.getControl('select-line-toggle');
+              if (btn) {
+                btn.setText('Select Line');
+                btn.setVariant('secondary');
+              }
+            }
+          }
+        },
+
+        // Select Line Toggle Button
+        {
+          type: 'button',
+          id: 'select-line-toggle',
+          text: 'Select Line',
+          variant: 'secondary',
+          fullWidth: true,
+          onClick: (manager, btn) => {
+            const isActive = manager.visualizer.isLineSelectionActive();
+
+            if (isActive) {
+              // Deactivate selection mode
+              manager.visualizer.deactivateLineSelection();
+              btn.setText('Select Line');
+              btn.setVariant('secondary');
+            } else {
+              // Activate selection mode
+              manager.visualizer.activateLineSelection();
+
+              // Auto-enable bottom plot if not already shown
+              if (!manager.visualizer.config.showBottomPlot) {
+                manager.visualizer.setBottomPlotVisible(true);
+
+                // Update the checkbox to reflect this
+                const checkbox = manager.getControl('show-bottom-plot');
+                if (checkbox) {
+                  checkbox.setValue(true);
+                }
+              }
+
+              btn.setText('Cancel Selection');
+              btn.setVariant('primary');
+            }
           }
         }
       ]

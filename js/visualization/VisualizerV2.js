@@ -26,6 +26,10 @@ import { GridOverlayPanel } from './panels/GridOverlayPanel.js';
 import { PhaseWheelPanel } from './panels/PhaseWheelPanel.js';
 import { MeasurementFeedbackPanel } from './panels/MeasurementFeedbackPanel.js';
 import { MeasurementCirclePanel } from './panels/MeasurementCirclePanel.js';
+import { LineSelectionPanel } from './panels/LineSelectionPanel.js';
+import { Wavefunction1DPlotPanel } from './panels/Wavefunction1DPlotPanel.js';
+import { LineSelectionState } from './core/LineSelectionState.js';
+import { InteractionMode } from '../controls/InteractionModeManager.js';
 
 /**
  * VisualizerV2 - Modern panel-based quantum wavefunction visualizer
@@ -59,12 +63,20 @@ export class VisualizerV2 {
       showPotentialOverlay: config.showPotentialOverlay === true, // Off by default
       potentialOverlayOpacity: config.potentialOverlayOpacity || 0.5,
       gridLineColor: config.gridLineColor || 'rgba(255, 255, 255, 0.2)',
-      gridLineWidth: config.gridLineWidth || 1
+      gridLineWidth: config.gridLineWidth || 1,
+      showBottomPlot: config.showBottomPlot || false,
+      bottomPlotHeight: config.bottomPlotHeight || 150
     };
 
     // Panel storage
     this.panels = {};
     this.layout = null;
+
+    // Line selection state (shared between LineSelectionPanel and Wavefunction1DPlotPanel)
+    this.lineSelectionState = new LineSelectionState();
+
+    // Store reference to mode manager (will be set by ControlsManager)
+    this.modeManager = null;
 
     // Initialize canvas and create panels
     this.resize();
@@ -88,7 +100,9 @@ export class VisualizerV2 {
       this.height,
       {
         showPlot: showPlot,
-        showPhaseWheel: this.config.showPhaseWheel
+        showPhaseWheel: this.config.showPhaseWheel,
+        showBottomPlot: this.config.showBottomPlot,
+        bottomPlotHeight: this.config.bottomPlotHeight
       }
     );
 
@@ -149,6 +163,23 @@ export class VisualizerV2 {
       bounds.wavefunction,
       this.simulation.gridSize
     );
+
+    // 7. Bottom panel: 1D wavefunction plot (if enabled)
+    if (bounds.bottomPlot) {
+      this.panels.wavefunction1DPlot = new Wavefunction1DPlotPanel(
+        bounds.bottomPlot,
+        this.lineSelectionState
+      );
+    }
+
+    // 8. Overlay 4: Line selection overlay (if bottom plot enabled)
+    if (this.config.showBottomPlot) {
+      this.panels.lineSelection = new LineSelectionPanel(
+        bounds.wavefunction,
+        this.simulation.gridSize,
+        this.lineSelectionState
+      );
+    }
   }
 
   /**
@@ -184,13 +215,15 @@ export class VisualizerV2 {
     // Render panels in order (back to front)
     // Each panel is responsible for its own rendering logic
     const renderOrder = [
-      'wavefunction',      // Background: main visualization
-      'potentialPlot',     // Side panel: potential profile
-      'potentialOverlay',  // Overlay: 2D potential on grid
-      'gridOverlay',       // Overlay: grid lines
-      'phaseWheel',        // Overlay: phase reference wheel
+      'wavefunction',        // Background: main visualization
+      'potentialPlot',       // Side panel: potential profile
+      'wavefunction1DPlot',  // Bottom panel: 1D plot
+      'potentialOverlay',    // Overlay: 2D potential on grid
+      'gridOverlay',         // Overlay: grid lines
+      'phaseWheel',          // Overlay: phase reference wheel
+      'lineSelection',       // Overlay: line selection UI
       'measurementFeedback', // Overlay: measurement flash
-      'measurementCircle'  // Foreground: hover circle
+      'measurementCircle'    // Foreground: hover circle
     ];
 
     for (const panelName of renderOrder) {
@@ -386,6 +419,74 @@ export class VisualizerV2 {
     }
 
     return this.simulation.getProbabilityAt(x, y);
+  }
+
+  /**
+   * Toggle bottom plot (1D wavefunction) visibility
+   * @param {boolean} visible - Whether to show bottom plot
+   */
+  setBottomPlotVisible(visible) {
+    this.config.showBottomPlot = visible;
+    this.createPanels(); // Recreate to add/remove bottom plot
+  }
+
+  /**
+   * Activate line selection mode
+   * Enables the user to click two points to define a line for 1D plotting
+   */
+  activateLineSelection() {
+    this.lineSelectionState.activate();
+
+    // Switch to line selection mode
+    if (this.modeManager) {
+      this.modeManager.setMode(InteractionMode.LINE_SELECTION);
+    }
+  }
+
+  /**
+   * Deactivate line selection mode
+   * Keeps the current line but disables further selection
+   */
+  deactivateLineSelection() {
+    this.lineSelectionState.deactivate();
+
+    // Return to measurement mode
+    if (this.modeManager) {
+      this.modeManager.setMode(InteractionMode.MEASUREMENT);
+    }
+  }
+
+  /**
+   * Cancel the current line selection
+   * Clears selected points and line without deactivating selection mode
+   */
+  cancelLineSelection() {
+    this.lineSelectionState.cancel();
+  }
+
+  /**
+   * Check if line selection mode is currently active
+   * @returns {boolean} True if selection mode is active
+   */
+  isLineSelectionActive() {
+    return this.lineSelectionState.isActive;
+  }
+
+  /**
+   * Check if a complete line has been defined
+   * @returns {boolean} True if both points selected and line computed
+   */
+  hasCompleteLine() {
+    return this.lineSelectionState.hasCompleteLine();
+  }
+
+  /**
+   * Set the interaction mode manager reference
+   * Called by ControlsManager during initialization
+   * @param {InteractionModeManager} modeManager - The mode manager instance
+   */
+  setModeManager(modeManager) {
+    this.modeManager = modeManager;
   }
 
   /**

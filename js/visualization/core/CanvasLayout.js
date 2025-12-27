@@ -40,7 +40,9 @@ export class CanvasLayout {
       showPlot: config.showPlot || false,
       showPhaseWheel: config.showPhaseWheel || false,
       phaseWheelRadius: config.phaseWheelRadius || 40,
-      phaseWheelMargin: config.phaseWheelMargin || 20
+      phaseWheelMargin: config.phaseWheelMargin || 20,
+      showBottomPlot: config.showBottomPlot || false,
+      bottomPlotHeight: config.bottomPlotHeight || 150
     };
   }
 
@@ -69,10 +71,15 @@ export class CanvasLayout {
   calculateLayout() {
     // Determine if plot should be shown
     const hasPlot = this.config.showPlot;
+    const hasBottomPlot = this.config.showBottomPlot;
 
-    // Grid size in pixels - always square, based on canvas height
+    // Calculate available height for grid (subtract bottom plot if shown)
+    const bottomPlotHeight = hasBottomPlot ? this.config.bottomPlotHeight : 0;
+    const availableHeight = this.canvasHeight - bottomPlotHeight;
+
+    // Grid size in pixels - always square, based on available height
     // This ensures the wavefunction visualization maintains proper aspect ratio
-    const gridSize = this.canvasHeight;
+    const gridSize = availableHeight;
 
     // Calculate plot width (remaining horizontal space if plot is enabled)
     const plotWidth = hasPlot ? (this.canvasWidth - gridSize) : 0;
@@ -96,7 +103,15 @@ export class CanvasLayout {
         x: gridSize,
         y: 0,
         width: plotWidth,
-        height: this.canvasHeight
+        height: availableHeight
+      } : null,
+
+      // Bottom plot - only included if enabled, runs along bottom of grid
+      bottomPlot: hasBottomPlot ? {
+        x: 0,
+        y: availableHeight,
+        width: gridSize,
+        height: bottomPlotHeight
       } : null,
 
       // Phase wheel - only included if enabled, overlaid in top-right corner
@@ -136,7 +151,7 @@ export class CanvasLayout {
     // Test panels in order of visual precedence (overlays first)
     // This ensures that overlaid panels (like phase wheel) are detected
     // before underlying panels
-    const testOrder = ['phaseWheel', 'potentialPlot', 'wavefunction'];
+    const testOrder = ['phaseWheel', 'potentialPlot', 'bottomPlot', 'wavefunction'];
 
     for (const panelName of testOrder) {
       const bounds = layout[panelName];
@@ -268,6 +283,24 @@ export class CanvasLayout {
    */
   getPhaseWheelBounds() {
     return this.calculateLayout().phaseWheel;
+  }
+
+  /**
+   * Get the bottom plot dimensions
+   *
+   * Convenience method to get just the bottom plot bounds.
+   * Returns null if bottom plot is not currently shown.
+   *
+   * @returns {Object|null} Bottom plot bounds or null if not shown
+   *
+   * @example
+   * const bottomBounds = canvasLayout.getBottomPlotBounds();
+   * if (bottomBounds) {
+   *   // Render bottom plot at these coordinates
+   * }
+   */
+  getBottomPlotBounds() {
+    return this.calculateLayout().bottomPlot;
   }
 }
 
