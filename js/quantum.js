@@ -98,6 +98,11 @@ export class QuantumSimulation {
 
         // Precompute potential grid
         this.potential = new Float64Array(gridSize * gridSize);
+
+        // Base freehand potential (before applying strength scale multiplier)
+        // This stores the raw drawn values which are then scaled by potentialStrengthScale
+        this.freehandPotentialBase = new Float64Array(gridSize * gridSize);
+
         this._precomputePotential();
 
         // Precompute position space evolution operator for potential
@@ -832,13 +837,24 @@ export class QuantumSimulation {
     /**
      * Set the potential strength scale and recompute the potential grid
      * @param {number} scale - Strength scale multiplier (0.1 to 10, default 1.0)
+     *
+     * For freehand mode, this multiplies the base drawn potential to get the actual potential.
+     * This allows live adjustment of the drawn potential strength without redrawing.
      */
     setPotentialStrengthScale(scale) {
         // Clamp to valid range
         this.potentialStrengthScale = Math.max(0.1, Math.min(10.0, scale));
 
-        // Recompute the potential grid with the new scale
-        this._precomputePotential();
+        if (this.potentialType === 'freehand') {
+            // For freehand mode, apply scale to the base potential
+            const N = this.gridSize;
+            for (let i = 0; i < N * N; i++) {
+                this.potential[i] = this.freehandPotentialBase[i] * this.potentialStrengthScale;
+            }
+        } else {
+            // For other modes, recompute the potential grid with the new scale
+            this._precomputePotential();
+        }
 
         // Recompute the potential operator
         this._precomputePotentialOperator();
@@ -911,12 +927,18 @@ export class QuantumSimulation {
     /**
      * Add potential at a specific grid location using Gaussian brush profile
      * Used for freehand drawing mode
+     *
+     * This method updates the BASE potential (before scaling). When drawing over
+     * the same area multiple times, it uses max/min to avoid accumulation.
+     * The actual potential used in simulation is: potential = base × potentialStrengthScale
+     *
      * @param {number} gridX - Grid X coordinate (0 to gridSize-1)
      * @param {number} gridY - Grid Y coordinate (0 to gridSize-1)
-     * @param {number} strength - Energy value to add (can be negative for erasing)
+     * @param {number} strength - Energy value to set (ignored if eraseMode is true)
      * @param {number} radius - Brush radius in physical units
+     * @param {boolean} eraseMode - If true, sets potential to 0 within brush radius
      */
-    addPotentialAt(gridX, gridY, strength, radius) {
+    addPotentialAt(gridX, gridY, strength, radius, eraseMode = false) {
         const N = this.gridSize;
         const sigma = radius;
         const x0 = gridX * this.dx;
@@ -942,9 +964,25 @@ export class QuantumSimulation {
 
                 const r2 = dx * dx + dy * dy;
 
-                // Gaussian brush profile: exp(-r²/(2σ²))
-                const delta = strength * Math.exp(-r2 / (2 * sigma * sigma));
-                this.potential[iy * N + ix] += delta;
+                const idx = iy * N + ix;
+                const currentValue = this.freehandPotentialBase[idx];
+
+                if (eraseMode) {
+                    // Erase mode: set potential to 0 within brush using Gaussian falloff
+                    // Gaussian weight: 1 at center, falls off to 0 at edges
+                    const gaussianWeight = Math.exp(-r2 / (2 * sigma * sigma));
+                    // Interpolate between current value and 0 based on Gaussian weight
+                    this.freehandPotentialBase[idx] = currentValue * (1 - gaussianWeight);
+                } else {
+                    // Drawing mode: Gaussian brush profile
+                    const newValue = strength * Math.exp(-r2 / (2 * sigma * sigma));
+                    // Use max to prevent accumulation
+                    this.freehandPotentialBase[idx] = Math.max(currentValue, newValue);
+                }
+
+                // Also update the actual potential for immediate visualization
+                // (operator will be recomputed on mouseup for efficiency)
+                this.potential[idx] = this.freehandPotentialBase[idx] * this.potentialStrengthScale;
             }
         }
     }
@@ -953,8 +991,19 @@ export class QuantumSimulation {
      * Finalize potential changes and recompute evolution operator
      * Call this after a series of addPotentialAt() calls (e.g., on mouseup)
      * to update the time evolution operator with the new potential
+     *
+     * For freehand mode, this applies the potentialStrengthScale to the base potential
+     * before recomputing the operator.
      */
     finalizePotentialChanges() {
+        // For freehand mode, apply the strength scale to get the actual potential
+        if (this.potentialType === 'freehand') {
+            const N = this.gridSize;
+            for (let i = 0; i < N * N; i++) {
+                this.potential[i] = this.freehandPotentialBase[i] * this.potentialStrengthScale;
+            }
+        }
+
         this._precomputePotentialOperator();
     }
 
@@ -965,6 +1014,7 @@ export class QuantumSimulation {
     clearFreehandPotential() {
         const N = this.gridSize;
         for (let i = 0; i < N * N; i++) {
+            this.freehandPotentialBase[i] = 0;
             this.potential[i] = 0;
         }
         this._precomputePotentialOperator();

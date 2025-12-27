@@ -131,28 +131,33 @@ export class PotentialOverlayPanel extends Panel {
                 // Subtract minimum to get relative potential
                 const relativeV = V - minV;
 
-                // Calculate alpha based on relative potential
-                // 0 = transparent, >= 1 = fully opaque, linear interpolation between
+                // Calculate color based on relative potential
+                // Smooth blue gradient from 0 to 10, white above 10
                 let r, g, b, a;
+                const maxBlueValue = 10.0;  // Maximum value for blue gradient
+
                 if (relativeV < 1e-10) {
                     // At minimum - fully transparent
                     r = 0;
                     g = 0;
                     b = 0;
                     a = 0;
-                } else if (relativeV >= 1.0) {
-                    // More than 1 above minimum - fully opaque
-                    r = 0;
-                    g = 100;  // Slight green tint for better visibility
+                } else if (relativeV >= maxBlueValue) {
+                    // Value >= 10 - show as white, fully opaque
+                    r = 255;
+                    g = 255;
                     b = 255;
                     a = Math.floor(this.config.opacity * 255);
                 } else {
-                    // Between 0 and 1 - linear interpolation
-                    const normalized = relativeV;  // Already in 0-1 range
-                    r = 0;
-                    g = 100;  // Slight green tint for better visibility
-                    b = 255;
-                    a = Math.floor(normalized * this.config.opacity * 255);
+                    // 0 < value < 10 - smooth gradient from dark blue to bright blue
+                    const normalized = relativeV / maxBlueValue;  // 0 to 1 scale
+
+                    // Blue gradient: dark blue (0, 50, 150) -> bright cyan-blue (100, 180, 255)
+                    // Increases brightness smoothly as potential increases
+                    r = Math.floor(normalized * 100);
+                    g = Math.floor(50 + normalized * 130);
+                    b = Math.floor(150 + normalized * 105);
+                    a = Math.floor(this.config.opacity * 255);
                 }
 
                 // Fill all pixels in this grid cell by blending with existing pixels

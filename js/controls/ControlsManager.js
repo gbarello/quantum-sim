@@ -204,7 +204,29 @@ export class ControlsManager {
             onMouseDrag: (x, y) => this.handleCanvasDrag(x, y),
             onMouseUp: () => this.endDrawing(),
             onMouseMove: (x, y) => {
-              // Optional: show brush preview
+              // Show brush preview
+              const gridCoords = this._canvasToGridCoords(x, y);
+              if (gridCoords && this.visualizer.setBrushPreviewState) {
+                const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+                if (state) {
+                  this.visualizer.setBrushPreviewState(
+                    true,
+                    gridCoords.x,
+                    gridCoords.y,
+                    state.brushSize,
+                    state.eraseMode
+                  );
+                }
+              } else if (this.visualizer.setBrushPreviewState) {
+                // Hide brush preview when outside grid
+                this.visualizer.setBrushPreviewState(false);
+              }
+            },
+            onMouseLeave: () => {
+              // Hide brush preview when mouse leaves
+              if (this.visualizer.setBrushPreviewState) {
+                this.visualizer.setBrushPreviewState(false);
+              }
             }
           },
           lineSelection: {
@@ -1052,18 +1074,15 @@ export class ControlsManager {
    * @private
    */
   _applyBrushAt(gridX, gridY) {
-    const state = this.modeManager.getModeState(InteractionMode.FREEHAND_DRAW);
+    const state = this.modeManager.getModeState();
     if (!state) return;
-
-    const strength = state.eraseMode ?
-      -state.brushStrength :
-      state.brushStrength;
 
     this.simulation.addPotentialAt(
       gridX,
       gridY,
-      strength,
-      state.brushSize
+      state.brushStrength,
+      state.brushSize,
+      state.eraseMode
     );
   }
 

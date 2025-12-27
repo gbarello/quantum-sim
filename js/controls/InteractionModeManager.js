@@ -101,11 +101,13 @@ export class InteractionModeManager {
   }
 
   /**
-   * Get state for the current mode
+   * Get state for a specific mode or the current mode
+   * @param {InteractionMode} mode - Optional mode to get state for (defaults to current mode)
    * @returns {Object}
    */
-  getModeState() {
-    return this._modeStates[this._currentMode];
+  getModeState(mode = null) {
+    const targetMode = mode || this._currentMode;
+    return this._modeStates[targetMode];
   }
 
   /**

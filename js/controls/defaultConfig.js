@@ -314,6 +314,33 @@ export const defaultControlsConfig = {
           }
         },
 
+        // Potential Strength Slider
+        // In freehand mode: Acts as overall multiplier for drawn potential
+        // In other modes: Scales the pre-computed potential
+        {
+          type: 'slider',
+          id: 'potential-strength',
+          label: 'Potential Strength',
+          min: -10,
+          max: 10,
+          value: 0,  // Default: maps to scale 1.0
+          step: 1,
+          unit: '',
+          // Transform slider value (-10 to 10) to strength scale (0.1 to 10) on log scale
+          // value = -10 -> scale = 0.1
+          // value = 0 -> scale = 1.0 (default)
+          // value = 10 -> scale = 10.0
+          transform: (val) => Math.pow(10, val / 10),
+          // Format for display
+          format: (val) => val.toFixed(1),
+          showLabels: true,
+          labels: { min: '0.1', max: '10' },
+          // Now visible in all modes, including freehand
+          onChange: (val, manager) => {
+            manager.simulation.setPotentialStrengthScale(val);
+          }
+        },
+
         // De-aliasing Filter Checkbox
         {
           type: 'checkbox',
@@ -377,51 +404,20 @@ export const defaultControlsConfig = {
           }
         },
 
-        // Potential Strength Slider
-        {
-          type: 'slider',
-          id: 'potential-strength',
-          label: 'Potential Strength',
-          min: -10,
-          max: 10,
-          value: 0,  // Default: maps to scale 1.0
-          step: 1,
-          unit: '',
-          // Transform slider value (-10 to 10) to strength scale (0.1 to 10) on log scale
-          // value = -10 -> scale = 0.1
-          // value = 0 -> scale = 1.0 (default)
-          // value = 10 -> scale = 10.0
-          transform: (val) => Math.pow(10, val / 10),
-          // Format for display
-          format: (val) => val.toFixed(1),
-          showLabels: true,
-          labels: { min: '0.1', max: '10' },
-          showIf: (manager) => manager.simulation.potentialType !== 'freehand',
-          onChange: (val, manager) => {
-            manager.simulation.setPotentialStrengthScale(val);
-          }
-        },
-
         // Brush Size Slider (only visible in freehand mode)
         {
           type: 'slider',
           id: 'brush-size',
           label: 'Brush Size',
-          min: 5,
-          max: 50,
-          value: 15,  // Default: 15px -> 0.15 physical units
-          step: 1,
-          unit: 'px',
-          // Transform slider value (5-50 px) to physical size
-          transform: (val, manager) => {
-            // Convert pixels to physical units relative to domain size
-            // Use a scaling factor: 100px = domainSize
-            return (val / 100) * manager.simulation.domainSize;
-          },
+          min: 0.05,
+          max: 0.5,
+          value: 0.15,  // Default: 0.15 physical units
+          step: 0.01,
+          unit: '',
           // Format for display
-          format: (val) => val.toFixed(0),
+          format: (val) => val.toFixed(2),
           showLabels: true,
-          labels: { min: '5', max: '50' },
+          labels: { min: '0.05', max: '0.5' },
           showIf: (manager) => manager.simulation.potentialType === 'freehand',
           onChange: (val, manager) => {
             manager.setBrushSize(val);

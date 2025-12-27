@@ -26,6 +26,7 @@ import { GridOverlayPanel } from './panels/GridOverlayPanel.js';
 import { PhaseWheelPanel } from './panels/PhaseWheelPanel.js';
 import { MeasurementFeedbackPanel } from './panels/MeasurementFeedbackPanel.js';
 import { MeasurementCirclePanel } from './panels/MeasurementCirclePanel.js';
+import { BrushPreviewPanel } from './panels/BrushPreviewPanel.js';
 import { LineSelectionPanel } from './panels/LineSelectionPanel.js';
 import { Wavefunction1DPlotPanel } from './panels/Wavefunction1DPlotPanel.js';
 import { LineSelectionState } from './core/LineSelectionState.js';
@@ -164,6 +165,12 @@ export class VisualizerV2 {
       this.simulation.gridSize
     );
 
+    // 6b. Foreground: Brush preview circle (for freehand drawing)
+    this.panels.brushPreview = new BrushPreviewPanel(
+      bounds.wavefunction,
+      this.simulation.gridSize
+    );
+
     // 7. Bottom panel: 1D wavefunction plot (if enabled)
     if (bounds.bottomPlot) {
       this.panels.wavefunction1DPlot = new Wavefunction1DPlotPanel(
@@ -223,7 +230,8 @@ export class VisualizerV2 {
       'phaseWheel',          // Overlay: phase reference wheel
       'lineSelection',       // Overlay: line selection UI
       'measurementFeedback', // Overlay: measurement flash
-      'measurementCircle'    // Foreground: hover circle
+      'measurementCircle',   // Foreground: measurement hover circle
+      'brushPreview'         // Foreground: brush preview circle (draw mode)
     ];
 
     for (const panelName of renderOrder) {
@@ -371,6 +379,20 @@ export class VisualizerV2 {
   setMeasurementRadius(radius) {
     // The MeasurementCirclePanel reads radius from simulation.measurementRadius
     // directly during render, so no action needed here
+  }
+
+  /**
+   * Set brush preview state for freehand drawing mode
+   * @param {boolean} active - Whether brush preview should be shown
+   * @param {number} gridX - Grid x coordinate
+   * @param {number} gridY - Grid y coordinate
+   * @param {number} brushSize - Brush size in physical units
+   * @param {boolean} eraseMode - Whether erase mode is active
+   */
+  setBrushPreviewState(active, gridX = 0, gridY = 0, brushSize = 0.15, eraseMode = false) {
+    if (this.panels.brushPreview) {
+      this.panels.brushPreview.setBrushState(active, gridX, gridY, brushSize, eraseMode);
+    }
   }
 
   /**

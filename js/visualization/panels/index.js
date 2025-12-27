@@ -33,4 +33,5 @@ export { PotentialPlotPanel } from './PotentialPlotPanel.js';
 export { GridOverlayPanel } from './GridOverlayPanel.js';
 export { MeasurementFeedbackPanel } from './MeasurementFeedbackPanel.js';
 export { MeasurementCirclePanel } from './MeasurementCirclePanel.js';
+export { BrushPreviewPanel } from './BrushPreviewPanel.js';
 export { PhaseWheelPanel } from './PhaseWheelPanel.js';
